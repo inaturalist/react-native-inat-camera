@@ -1,0 +1,43 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 26
+    defaultConfig {
+        applicationId "org.inaturalist.native_camera.nativecameraandroid"
+        minSdkVersion 21
+        targetSdkVersion 26
+        versionCode 1
+        versionName "1.0"
+        ndk {
+            abiFilters "armeabi-v7a", "x86", 'armeabi', 'arm64-v8a'
+        }
+        packagingOptions {
+            exclude "lib/arm64-v8a/libgnustl_shared.so"
+            exclude '/lib/mips64/**'
+            exclude '/lib/arm64-v8a/**'
+            exclude '/lib/x86_64/**'
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+        }
+    }
+    aaptOptions {
+        noCompress "tflite"
+        noCompress "lite"
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.facebook.react:react-native:+'
+    implementation 'com.android.support:support-annotations:27.1.1'
+    implementation 'com.android.support:support-v13:26.0.0'
+    implementation 'org.tensorflow:tensorflow-lite:+'
+    implementation 'com.google.code.gson:gson:2.8.5'
+}
