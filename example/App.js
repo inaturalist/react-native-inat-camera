@@ -26,8 +26,9 @@ export default class App extends Component<Props> {
   }   
 
   onTaxaDetected = event => {
-        let predictions = Object.assign({}, event.nativeEvent);
-        this.setState(previousState => (
+       let predictions = Object.assign({}, event.nativeEvent);
+
+       this.setState(previousState => (
             { content: JSON.stringify(predictions) }
         ))
   }
@@ -43,6 +44,10 @@ export default class App extends Component<Props> {
   onClassifierError = event => {
         Alert.alert(`Classifier error: ${event.nativeEvent.error}`)
   }
+
+  onDeviceNotSupported = event => {
+        Alert.alert(`Device not supported, reason: ${event.nativeEvent.reason}`)
+  }
     
   render() {
     return (
@@ -54,8 +59,9 @@ export default class App extends Component<Props> {
             onCameraError={this.onCameraError}
             onCameraPermissionMissing={this.onCameraPermissionMissing}
             onClassifierError={this.onClassifierError}
-            modelPath="/sdcard/Download/inat_new_optimized_model.tflite"
-            taxonomyPath="/sdcard/Download/taxa.json"
+            onDeviceNotSupported={this.onDeviceNotSupported}
+            modelPath="/sdcard/Download/gastropoda_8th_factorized.tflite"
+            taxonomyPath="/sdcard/Download/taxonomy_data.json"
             taxaDetectionInterval="2000"
             style={styles.camera} />
 

@@ -34,7 +34,7 @@ public class ImageClassifier {
     private static final int IMAGE_MEAN = 128;
     private static final float IMAGE_STD = 128.0f;
 
-    private static final int[] EXPECTED_MODEL_OUTPUT_SIZES = { 6, 9, 7, 41, 76, 190, 199 };
+    private static final int EXPECTED_MODEL_OUTPUT_SIZE = 831;
 
     private final Taxonomy mTaxonomy;
     private final String modelFilename;
@@ -67,7 +67,6 @@ public class ImageClassifier {
     /** Classifies a frame from the preview stream. */
     public Collection<Prediction> classifyFrame(Bitmap bitmap) {
         if (tflite == null) {
-            // TODO
             Log.e(TAG, "Image classifier has not been initialized; Skipped.");
             return null;
         }
@@ -78,8 +77,8 @@ public class ImageClassifier {
         imgData.get(arr);
 
         Map<Integer, Object> expectedOutputs = new HashMap<>();
-        for (int i = 0; i < EXPECTED_MODEL_OUTPUT_SIZES.length; i++) {
-            expectedOutputs.put(i, new float[1][EXPECTED_MODEL_OUTPUT_SIZES[i]]);
+        for (int i = 0; i < 1; i++) {
+            expectedOutputs.put(i, new float[1][EXPECTED_MODEL_OUTPUT_SIZE]);
         }
 
         Object[] input = { imgData };

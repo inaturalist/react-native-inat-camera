@@ -23,6 +23,7 @@ import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -61,6 +62,11 @@ public class Camera2BasicFragment extends Fragment
 
     private static final String HANDLE_THREAD_NAME = "CameraBackground";
 
+    // Reasons why the device is not supported
+    private static final int REASON_DEVICE_SUPPORTED = 0;
+    private static final int REASON_OS_TOO_OLD = 1;
+    // TODO: Add more reasons (e.g. graphic card, memory, ...)
+
     private final Object lock = new Object();
     private boolean mRunClassifier = false;
     private boolean mCheckedPermissions = false;
@@ -74,12 +80,14 @@ public class Camera2BasicFragment extends Fragment
     private CameraListener mCameraCallback;
     private String mModelFilename;
     private String mTaxonomyFilename;
+    private boolean mDeviceSupported;
 
     public interface CameraListener {
         void onCameraError(String error);
         void onCameraPermissionMissing();
         void onClassifierError(String error);
         void onTaxaDetected(Collection<Prediction> predictions);
+        void onDeviceNotSupported(String reason);
     }
     
     public void setOnCameraErrorListener(CameraListener listener) {
@@ -274,6 +282,19 @@ public class Camera2BasicFragment extends Fragment
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
+        int reason = checkForSupportedDevice();
+
+        mDeviceSupported = (reason == REASON_DEVICE_SUPPORTED);
+
+        if (!mDeviceSupported) {
+            Log.w(TAG, "Device not supported - not running classifier");
+
+            if (mCameraCallback != null) mCameraCallback.onDeviceNotSupported(deviceNotSupportedReasonToString(reason));
+
+            return;
+        }
+
         try {
             mClassifier = new ImageClassifier(getActivity(), mModelFilename, mTaxonomyFilename);
         } catch (IOException e) {
@@ -282,9 +303,34 @@ public class Camera2BasicFragment extends Fragment
         startBackgroundThread();
     }
 
+    private int checkForSupportedDevice() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            // OS version is too old
+            return REASON_OS_TOO_OLD;
+        }
+
+        // If we reached here - that means the device is supported
+        return REASON_DEVICE_SUPPORTED;
+    }
+
+    private String deviceNotSupportedReasonToString(int reason) {
+        switch (reason) {
+            case REASON_OS_TOO_OLD:
+                return "Android version is too old - needs to be at least 6.0";
+        }
+
+        return null;
+    }
+
     @Override
     public void onResume() {
         super.onResume();
+
+        if (!mDeviceSupported) {
+            Log.w(TAG, "Device not supported - not running classifier");
+            return;
+        }
+
         startBackgroundThread();
 
         // When the screen is turned off and turned back on, the SurfaceTexture is already

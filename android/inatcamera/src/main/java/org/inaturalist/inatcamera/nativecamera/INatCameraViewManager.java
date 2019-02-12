@@ -46,7 +46,9 @@ public class INatCameraViewManager extends SimpleViewManager<INatCameraView> {
                 INatCameraView.EVENT_NAME_ON_CAMERA_PERMISSION_MISSING,
                 (Object) MapBuilder.of("registrationName", INatCameraView.EVENT_NAME_ON_CAMERA_PERMISSION_MISSING),
                 INatCameraView.EVENT_NAME_ON_CLASSIFIER_ERROR,
-                (Object) MapBuilder.of("registrationName", INatCameraView.EVENT_NAME_ON_CLASSIFIER_ERROR)
+                (Object) MapBuilder.of("registrationName", INatCameraView.EVENT_NAME_ON_CLASSIFIER_ERROR),
+                INatCameraView.EVENT_NAME_ON_DEVICE_NOT_SUPPORTED,
+                (Object) MapBuilder.of("registrationName", INatCameraView.EVENT_NAME_ON_DEVICE_NOT_SUPPORTED)
         );
     }
 

@@ -10,13 +10,19 @@ public class Node {
     public String key;
 
     @SerializedName("c")
-    public int classId;
+    public String classId;
 
     @SerializedName("n")
     public String name;
 
     @SerializedName("p")
     public String parentKey;
+
+    @SerializedName("r")
+    public int rank;
+
+    @SerializedName("l")
+    public String leafId;
 
     public transient Node parent;
 
@@ -27,31 +33,5 @@ public class Node {
         child.parent = this;
     }
 
-    public Prediction doPrediction(float[] probabilities) {
-        assert(children.size() > 0);
-
-        if (children.size() == 1) {
-            return new Prediction(children.get(0), 1.0);
-
-        } else {
-
-            Node currentSelectedChild = null;
-            double selectedChildProbability = -1;
-
-            // Find child with highest probability
-            for (Node child : children) {
-                double childProbability = probabilities[child.classId];
-                if (childProbability > selectedChildProbability) {
-                    currentSelectedChild = child;
-                    selectedChildProbability = childProbability;
-                }
-            }
-
-            assert(currentSelectedChild != null);
-
-            // Return child node with highest probability
-            return new Prediction(currentSelectedChild, selectedChildProbability);
-        }
-    }
 }
 
