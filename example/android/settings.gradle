@@ -1,3 +1,5 @@
 rootProject.name = 'example'
 
 include ':app', ':inatcamera'
+project(':inatcamera').projectDir = new File(rootProject.projectDir, '../../android')
+

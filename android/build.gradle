@@ -1,23 +1,33 @@
-buildscript {
-    repositories {
-        google()
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:3.2.1'
-    }
-}
+apply plugin: 'com.android.library'
 
-allprojects {
-    repositories {
-        maven {
-            url "$rootDir/../node_modules/react-native/android"
+android {
+    compileSdkVersion 28
+
+    defaultConfig {
+        minSdkVersion 23
+        targetSdkVersion 28
+        versionCode 1
+        versionName "1.0"
+
+        ndk {
+            abiFilters "armeabi-v7a", "x86", 'armeabi', 'arm64-v8a'
         }
-        google()
-        jcenter()
+        packagingOptions {
+            exclude "lib/arm64-v8a/libgnustl_shared.so"
+            exclude '/lib/mips64/**'
+            exclude '/lib/arm64-v8a/**'
+            exclude '/lib/x86_64/**'
+        }
     }
 }
 
-task clean(type: Delete) {
-    delete rootProject.buildDir
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+    implementation 'com.facebook.react:react-native:+'
+    implementation 'com.android.support:appcompat-v7:28.0.0'
+    implementation 'com.android.support:support-annotations:28.0.0'
+    implementation 'com.android.support:support-v13:28.0.0'
+    implementation 'org.tensorflow:tensorflow-lite:+'
+    implementation 'com.google.code.gson:gson:2.8.5'
 }
