@@ -79,6 +79,7 @@ public class Camera2BasicFragment extends Fragment
     private static final int MAX_PREVIEW_HEIGHT = 1080;
     private CameraListener mCameraCallback;
     private String mModelFilename;
+    private int mModelSize;
     private String mTaxonomyFilename;
     private boolean mDeviceSupported;
 
@@ -257,6 +258,10 @@ public class Camera2BasicFragment extends Fragment
         }
     }
 
+    public void setModelSize(int size) {
+        mModelSize = size;
+    }
+
     public void setModelFilename(String filename) {
         mModelFilename = filename;
     }
@@ -296,7 +301,7 @@ public class Camera2BasicFragment extends Fragment
         }
 
         try {
-            mClassifier = new ImageClassifier(getActivity(), mModelFilename, mTaxonomyFilename);
+            mClassifier = new ImageClassifier(getActivity(), mModelFilename, mTaxonomyFilename, mModelSize);
         } catch (IOException e) {
             if (mCameraCallback != null) mCameraCallback.onClassifierError("Failed to initialize an image mClassifier: " + e.getMessage());
         }

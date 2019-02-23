@@ -1,15 +1,10 @@
 package org.inaturalist.inatcamera.classifier;
 
 import android.util.Log;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import com.google.gson.stream.JsonReader;
-
+import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -31,12 +26,20 @@ public class Taxonomy {
     Node mRootNode;
 
     Taxonomy(InputStream is) {
-        // Read the taxonomy JSON file into a list of nodes
-        GsonBuilder gsonBuilder = new GsonBuilder();
-        Gson gson = gsonBuilder.create();
 
-        Type nodeCollectionType = new TypeToken<Collection<Node>>(){}.getType();
-        mNodes = gson.fromJson(new JsonReader(new InputStreamReader(is)), nodeCollectionType);
+        // Read the taxonomy CSV file into a list of nodes
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        try {
+            reader.readLine(); // Skip the first line (header line)
+
+            mNodes = new ArrayList<>();
+            for (String line; (line = reader.readLine()) != null; ) {
+                mNodes.add(new Node(line));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // Convert list of nodes into a structure with parents and children
         mNodeByKey = new HashMap<>();
@@ -57,6 +60,7 @@ public class Taxonomy {
                 mRootNode = node;
             }
         }
+
     }
 
     public Collection<Prediction> predict(Map<Integer, Object> outputs) {
@@ -72,7 +76,7 @@ public class Taxonomy {
         });
 
         // Return only a sub-set of the results
-        return predictions.subList(0, MAX_PREDICTIONS);
+        return predictions.subList(0, predictions.size() > MAX_PREDICTIONS ? MAX_PREDICTIONS : predictions.size());
     }
 
     /** Performs the prediction process, according to a list of outputs from the TFLite model */
@@ -86,7 +90,14 @@ public class Taxonomy {
                 Log.w(TAG, String.format("Results from model file contains an invalid leaf ID: %d", i));
                 continue;
             }
-            Prediction prediction = new Prediction(mNodeByLeafId.get(String.valueOf(i)), results[i]);
+            Node node = mNodeByLeafId.get(String.valueOf(i));
+            if (!node.key.matches("\\d+(?:\\.\\d+)?")) {
+                // Key is not a valid number
+                Log.w(TAG, String.format("Results from model file contains a node with an invalid key (non numeric): %s", node.key));
+                continue;
+            }
+            
+            Prediction prediction = new Prediction(node, results[i]);
             prediction.rank = prediction.node.rank;
             predictions.add(prediction);
         }

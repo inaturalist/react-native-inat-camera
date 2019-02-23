@@ -60,8 +60,9 @@ export default class App extends Component<Props> {
             onCameraPermissionMissing={this.onCameraPermissionMissing}
             onClassifierError={this.onClassifierError}
             onDeviceNotSupported={this.onDeviceNotSupported}
-            modelPath="/sdcard/Download/gastropoda_8th_factorized.tflite"
-            taxonomyPath="/sdcard/Download/taxonomy_data.json"
+            modelPath="/sdcard/Download/optimized_model.tflite"
+            modelSize="24875"
+            taxonomyPath="/sdcard/Download/taxonomy_data.csv"
             taxaDetectionInterval="2000"
             style={styles.camera} />
 

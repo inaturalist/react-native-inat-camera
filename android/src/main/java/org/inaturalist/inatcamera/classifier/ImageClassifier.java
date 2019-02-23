@@ -34,39 +34,39 @@ public class ImageClassifier {
     private static final int IMAGE_MEAN = 128;
     private static final float IMAGE_STD = 128.0f;
 
-    private static final int EXPECTED_MODEL_OUTPUT_SIZE = 831;
-
     private final Taxonomy mTaxonomy;
-    private final String modelFilename;
-    private final String taxonomyFilename;
+    private final String mModelFilename;
+    private final String mTaxonomyFilename;
+    private int mModelSize;
 
     /* Preallocated buffers for storing image data in. */
     private int[] intValues = new int[DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y];
 
     /** An instance of the driver class to run model inference with Tensorflow Lite. */
-    private Interpreter tflite;
+    private Interpreter mTFlite;
 
     /** A ByteBuffer to hold image data, to be feed into Tensorflow Lite as inputs. */
     private ByteBuffer imgData;
 
 
     /** Initializes an {@code ImageClassifier}. */
-    public ImageClassifier(Activity activity, String modelPath, String taxonomyPath) throws IOException {
-        modelFilename = modelPath;
-        taxonomyFilename = taxonomyPath;
-        tflite = new Interpreter(loadModelFile(activity));
+    public ImageClassifier(Activity activity, String modelPath, String taxonomyPath, int modelSize) throws IOException {
+        mModelFilename = modelPath;
+        mTaxonomyFilename = taxonomyPath;
+        mModelSize = modelSize;
+        mTFlite = new Interpreter(loadModelFile(activity));
         imgData =
                 ByteBuffer.allocateDirect(
                         4 * DIM_BATCH_SIZE * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * DIM_PIXEL_SIZE);
         imgData.order(ByteOrder.nativeOrder());
         Log.d(TAG, "Created a Tensorflow Lite Image Classifier.");
 
-        mTaxonomy = new Taxonomy(new FileInputStream(taxonomyFilename));
+        mTaxonomy = new Taxonomy(new FileInputStream(mTaxonomyFilename));
     }
 
     /** Classifies a frame from the preview stream. */
     public Collection<Prediction> classifyFrame(Bitmap bitmap) {
-        if (tflite == null) {
+        if (mTFlite == null) {
             Log.e(TAG, "Image classifier has not been initialized; Skipped.");
             return null;
         }
@@ -78,11 +78,11 @@ public class ImageClassifier {
 
         Map<Integer, Object> expectedOutputs = new HashMap<>();
         for (int i = 0; i < 1; i++) {
-            expectedOutputs.put(i, new float[1][EXPECTED_MODEL_OUTPUT_SIZE]);
+            expectedOutputs.put(i, new float[1][mModelSize]);
         }
 
         Object[] input = { imgData };
-        tflite.runForMultipleInputsOutputs(input, expectedOutputs);
+        mTFlite.runForMultipleInputsOutputs(input, expectedOutputs);
         Collection<Prediction> predictions = mTaxonomy.predict(expectedOutputs);
         long endTime = SystemClock.uptimeMillis();
 
@@ -91,13 +91,13 @@ public class ImageClassifier {
 
     /** Closes tflite to release resources. */
     public void close() {
-        tflite.close();
-        tflite = null;
+        mTFlite.close();
+        mTFlite = null;
     }
 
     /** Memory-map the model file in Assets. */
     private MappedByteBuffer loadModelFile(Activity activity) throws IOException {
-        FileInputStream inputStream = new FileInputStream(modelFilename);
+        FileInputStream inputStream = new FileInputStream(mModelFilename);
         FileChannel fileChannel = inputStream.getChannel();
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, inputStream.available());
     }
