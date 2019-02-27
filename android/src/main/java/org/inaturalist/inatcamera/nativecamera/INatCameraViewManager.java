@@ -31,11 +31,6 @@ public class INatCameraViewManager extends SimpleViewManager<INatCameraView> {
         view.setModelPath(path);
     }
 
-    @ReactProp(name = "modelSize")
-    public void setModelSize(INatCameraView view, String size) {
-        view.setModelSize(Integer.valueOf(size));
-    }
-
     @ReactProp(name = "taxonomyPath")
     public void setTaxonomyPath(INatCameraView view, String path) {
         view.setTaxonomyPath(path);

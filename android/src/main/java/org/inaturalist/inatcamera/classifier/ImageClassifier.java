@@ -50,10 +50,9 @@ public class ImageClassifier {
 
 
     /** Initializes an {@code ImageClassifier}. */
-    public ImageClassifier(Activity activity, String modelPath, String taxonomyPath, int modelSize) throws IOException {
+    public ImageClassifier(Activity activity, String modelPath, String taxonomyPath) throws IOException {
         mModelFilename = modelPath;
         mTaxonomyFilename = taxonomyPath;
-        mModelSize = modelSize;
         mTFlite = new Interpreter(loadModelFile(activity));
         imgData =
                 ByteBuffer.allocateDirect(
@@ -62,6 +61,7 @@ public class ImageClassifier {
         Log.d(TAG, "Created a Tensorflow Lite Image Classifier.");
 
         mTaxonomy = new Taxonomy(new FileInputStream(mTaxonomyFilename));
+        mModelSize = mTaxonomy.getModelSize();
     }
 
     /** Classifies a frame from the preview stream. */

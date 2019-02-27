@@ -63,6 +63,10 @@ public class Taxonomy {
 
     }
 
+    public int getModelSize() {
+        return mNodeByLeafId.size();
+    }
+
     public Collection<Prediction> predict(Map<Integer, Object> outputs) {
         // Get raw predictions
         List<Prediction> predictions = doPredictions(outputs);

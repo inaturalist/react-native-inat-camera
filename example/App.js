@@ -61,7 +61,6 @@ export default class App extends Component<Props> {
             onClassifierError={this.onClassifierError}
             onDeviceNotSupported={this.onDeviceNotSupported}
             modelPath="/sdcard/Download/optimized_model.tflite"
-            modelSize="24875"
             taxonomyPath="/sdcard/Download/taxonomy_data.csv"
             taxaDetectionInterval="2000"
             style={styles.camera} />

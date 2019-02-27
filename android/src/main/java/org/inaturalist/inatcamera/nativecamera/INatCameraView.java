@@ -101,10 +101,6 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
                 .commit();
     }
 
-    public void setModelSize(int size) {
-        mCameraFragment.setModelSize(size);
-    }
-
     public void setModelPath(String path) {
         mCameraFragment.setModelFilename(path);
     }
