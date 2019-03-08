@@ -660,6 +660,12 @@ public class Camera2BasicFragment extends Fragment
             return;
         }
         Bitmap bitmap = textureView.getBitmap(ImageClassifier.DIM_IMG_SIZE_X, ImageClassifier.DIM_IMG_SIZE_Y);
+
+        if (bitmap == null) {
+            Log.e(TAG, "Null input bitmap");
+            return;
+        }
+
         Collection<Prediction> predictions = mClassifier.classifyFrame(bitmap);
         bitmap.recycle();
 

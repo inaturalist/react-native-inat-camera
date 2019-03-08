@@ -70,6 +70,11 @@ public class ImageClassifier {
             Log.e(TAG, "Image classifier has not been initialized; Skipped.");
             return null;
         }
+        if (bitmap == null) {
+            Log.e(TAG, "Null input bitmap");
+            return null;
+        }
+
         convertBitmapToByteBuffer(bitmap);
         long startTime = SystemClock.uptimeMillis();
 

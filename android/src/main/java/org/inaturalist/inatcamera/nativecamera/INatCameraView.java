@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 public class INatCameraView extends FrameLayout implements Camera2BasicFragment.CameraListener {
     private static final String TAG = "INatCameraView";
 
@@ -78,27 +79,42 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     private int mTaxaDetectionInterval = DEFAULT_TAXON_DETECTION_INTERVAL;
     private long mLastErrorTime = 0;
     private long mLastPredictionTime = 0;
+    private Activity mActivity = null;
+
+    private boolean mReplacedFragment = false;
 
     public INatCameraView(Context context) {
         super(context);
         reactContext = (ReactContext) context;
     }
 
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+
+        if (!mReplacedFragment) {
+            mReplacedFragment = true;
+
+            FrameLayout cameraLayout = (FrameLayout) mActivity.getLayoutInflater().inflate(R.layout.inat_camera, null);
+            this.addView(cameraLayout);
+
+            mActivity.getFragmentManager()
+                .beginTransaction()
+                .replace(R.id.container, mCameraFragment)
+                .commit();
+        }
+    }
+    
+
     @SuppressLint("ResourceType")
     public INatCameraView(Context context, Activity activity) {
         super(context);
         reactContext = (ReactContext) context;
 
-        FrameLayout cameraLayout = (FrameLayout) activity.getLayoutInflater().inflate(R.layout.inat_camera, null);
-        this.addView(cameraLayout);
+        mActivity = activity;
 
         mCameraFragment = new Camera2BasicFragment();
         mCameraFragment.setOnCameraErrorListener(this);
-
-        activity.getFragmentManager()
-                .beginTransaction()
-                .replace(R.id.container, mCameraFragment)
-                .commit();
     }
 
     public void setModelPath(String path) {
