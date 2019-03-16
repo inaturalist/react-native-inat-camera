@@ -1,6 +1,7 @@
 {
   "name": "INatCamera",
   "version": "1.0.0",
+  "main": "index.js",
   "scripts": {
     "start": "node node_modules/react-native/local-cli/cli.js start"
   },
