@@ -26,6 +26,10 @@
     if (self = [super init]) {
         self.modelPath = modelPath;
         self.taxonomy = [[NATTaxonomy alloc] initWithTaxonomyFile:taxonomyPath];
+        
+        // default prediction threshold
+        self.threshold = .80;
+        
         [self setupVision];
     }
     
