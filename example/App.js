@@ -11,13 +11,6 @@ import React, {Component} from 'react';
 import {Platform, StyleSheet, Text, View, Alert} from 'react-native';
 import INatCamera from './INatCamera';
 
-const instructions = Platform.select({
-  ios: 'Press Cmd+R to reload,\n' + 'Cmd+D or shake for dev menu',
-  android:
-    'Double tap R on your keyboard to reload,\n' +
-    'Shake or press menu button for dev menu',
-});
-
 type Props = {};
 export default class App extends Component<Props> {
   constructor(props) {
@@ -52,8 +45,6 @@ export default class App extends Component<Props> {
   render() {
     return (
       <View style={styles.container}>
-        <Text style={styles.welcome}>iNaturalist Native Camera Demo</Text>
-
         <INatCamera
             onTaxaDetected={this.onTaxaDetected}
             onCameraError={this.onCameraError}
@@ -65,9 +56,9 @@ export default class App extends Component<Props> {
             taxaDetectionInterval="2000"
             style={styles.camera} />
 
-         <Text style={styles.predictions}>
+        <Text style={styles.predictions}>
             {this.state.content}
-            </Text>
+        </Text>
       </View>
     );
   }
@@ -75,31 +66,27 @@ export default class App extends Component<Props> {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F5FCFF',
-  },
-  welcome: {
-    fontSize: 20,
-    textAlign: 'center',
-    margin: 10,
-  },
-  instructions: {
-    textAlign: 'center',
-    color: '#333333',
-    marginBottom: 5,
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: '100%',
+    backgroundColor: 'red'
   },
   camera: {
-    width: "100%",
-    height: 450,
-    backgroundColor: 'black'
+    top: 0,
+    left: 0,
+    height: '100%',
+    width: '100%',
+    backgroundColor: 'blue'
   },
   predictions: {
     margin: 10,
     fontSize: 10,
     fontFamily: 'sans-serif-condensed',
-    color: 'black'
+    color: 'black',
+    position: 'absolute',
+    bottom: 0,
+    left: 0
   }, 
 });
 
