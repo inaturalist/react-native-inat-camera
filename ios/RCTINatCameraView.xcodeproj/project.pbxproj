@@ -11,7 +11,6 @@
 		FA572DFB223C7F9C00F2CC77 /* NATClassifier.m in Sources */ = {isa = PBXBuildFile; fileRef = FA572DF5223C7F9C00F2CC77 /* NATClassifier.m */; };
 		FA572DFC223C7F9C00F2CC77 /* NATPrediction.m in Sources */ = {isa = PBXBuildFile; fileRef = FA572DF6223C7F9C00F2CC77 /* NATPrediction.m */; };
 		FA572DFD223C7F9C00F2CC77 /* NATNode.m in Sources */ = {isa = PBXBuildFile; fileRef = FA572DF7223C7F9C00F2CC77 /* NATNode.m */; };
-		FA572E02223C7FA900F2CC77 /* NATCameraManager.m in Sources */ = {isa = PBXBuildFile; fileRef = FA572DFE223C7FA900F2CC77 /* NATCameraManager.m */; };
 		FA572E03223C7FA900F2CC77 /* NATCameraView.m in Sources */ = {isa = PBXBuildFile; fileRef = FA572DFF223C7FA900F2CC77 /* NATCameraView.m */; };
 		FA572E06223C804F00F2CC77 /* RCTINatCameraViewManager.m in Sources */ = {isa = PBXBuildFile; fileRef = FA572E05223C804F00F2CC77 /* RCTINatCameraViewManager.m */; };
 /* End PBXBuildFile section */
@@ -38,10 +37,8 @@
 		FA572DF7223C7F9C00F2CC77 /* NATNode.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NATNode.m; sourceTree = "<group>"; };
 		FA572DF8223C7F9C00F2CC77 /* NATPrediction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NATPrediction.h; sourceTree = "<group>"; };
 		FA572DF9223C7F9C00F2CC77 /* NATNode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NATNode.h; sourceTree = "<group>"; };
-		FA572DFE223C7FA900F2CC77 /* NATCameraManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NATCameraManager.m; sourceTree = "<group>"; };
 		FA572DFF223C7FA900F2CC77 /* NATCameraView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NATCameraView.m; sourceTree = "<group>"; };
 		FA572E00223C7FA900F2CC77 /* NATCameraView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NATCameraView.h; sourceTree = "<group>"; };
-		FA572E01223C7FA900F2CC77 /* NATCameraManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NATCameraManager.h; sourceTree = "<group>"; };
 		FA572E04223C804F00F2CC77 /* RCTINatCameraViewManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RCTINatCameraViewManager.h; sourceTree = "<group>"; };
 		FA572E05223C804F00F2CC77 /* RCTINatCameraViewManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RCTINatCameraViewManager.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -92,8 +89,6 @@
 		FA572DF1223C7F6F00F2CC77 /* Native Camera */ = {
 			isa = PBXGroup;
 			children = (
-				FA572E01223C7FA900F2CC77 /* NATCameraManager.h */,
-				FA572DFE223C7FA900F2CC77 /* NATCameraManager.m */,
 				FA572E00223C7FA900F2CC77 /* NATCameraView.h */,
 				FA572DFF223C7FA900F2CC77 /* NATCameraView.m */,
 				FA572E04223C804F00F2CC77 /* RCTINatCameraViewManager.h */,
@@ -163,7 +158,6 @@
 				FA572DFD223C7F9C00F2CC77 /* NATNode.m in Sources */,
 				FA572DFB223C7F9C00F2CC77 /* NATClassifier.m in Sources */,
 				FA572E03223C7FA900F2CC77 /* NATCameraView.m in Sources */,
-				FA572E02223C7FA900F2CC77 /* NATCameraManager.m in Sources */,
 				FA572DFA223C7F9C00F2CC77 /* NATTaxonomy.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
