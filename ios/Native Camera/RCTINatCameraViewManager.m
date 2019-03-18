@@ -18,6 +18,7 @@
 RCT_EXPORT_MODULE()
 RCT_EXPORT_VIEW_PROPERTY(onTaxaDetected, RCTBubblingEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(confidenceThreshold, float)
+RCT_EXPORT_VIEW_PROPERTY(taxaDetectionInterval, NSInteger)
 
 - (UIView *)view
 {

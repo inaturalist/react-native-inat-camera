@@ -26,7 +26,7 @@
 @property NSArray *requests;
 @property NSDictionary *leafTaxa;
 @property NATClassifier *classifier;
-
+@property NSDate *lastPredictionTime;
 @end
 
 @implementation NATCameraView
@@ -45,6 +45,12 @@
         self.classifier = [[NATClassifier alloc] initWithModelFile:modelFile
                                                        taxonmyFile:taxonomyFile];
         self.classifier.delegate = self;
+        
+        // default detection interval is 1000 ms
+        self.taxaDetectionInterval = 1000;
+        
+        // start predicting right away
+        self.lastPredictionTime = [NSDate distantPast];
         
         [self setupAVCApture];
     }
@@ -182,13 +188,22 @@
 #pragma mark - AVCaptureVideoDataOutputSampleBufferDelegate
 
 - (void)captureOutput:(AVCaptureOutput *)output didOutputSampleBuffer:(CMSampleBufferRef)sampleBuffer fromConnection:(AVCaptureConnection *)connection {
-    CVImageBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
-    if (!pixelBuffer) {
-        return;
-    }
     
-    [self.classifier classifyFrame:pixelBuffer
-                       orientation: [self exifOrientationFromDeviceOrientation]];
+    // only process _n_ frames per second, where
+    NSDate *now = [NSDate date];
+    NSTimeInterval secsSinceLastPrediction = [now timeIntervalSinceDate:[self lastPredictionTime]];
+    // taxaDetectionInteveral is specified in milliseconds
+    if ((secsSinceLastPrediction * 1000) > self.taxaDetectionInterval) {
+        self.lastPredictionTime = now;
+        
+        CVImageBufferRef pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer);
+        if (!pixelBuffer) {
+            return;
+        }
+        
+        [self.classifier classifyFrame:pixelBuffer
+                           orientation: [self exifOrientationFromDeviceOrientation]];
+    }
 }
 
 #pragma mark - NATClassifierDelegate

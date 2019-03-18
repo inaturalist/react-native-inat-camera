@@ -21,6 +21,11 @@
 @property (nonatomic, assign) id <NATCameraDelegate> delegate;
 @property (nonatomic, assign) float confidenceThreshold;
 
+// Minimum delay between calls to the onTaxaDetected callback, in ms.
+// So if taxaDetectionInterval is 1000, the callback will be called
+// at most once per second.
+@property (nonatomic, assign) NSInteger taxaDetectionInterval;
+
 - (instancetype)initWithModelFile:(NSString *)modelFile taxonomyFile:(NSString *)taxonomyFile;
 
 @end
