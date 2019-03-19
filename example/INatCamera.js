@@ -46,32 +46,31 @@ export default class INatCamera extends React.Component<PropsType, StateType> {
 
     _onTaxaDetected = (event) => {
         if (this.props.onTaxaDetected) {
-            let predictions = Object.assign({}, event.nativeEvent);
-            this.props.onTaxaDetected(predictions);
+            this.props.onTaxaDetected(event);
         }
     };
 
     _onCameraError = (event) => {
         if (this.props.onCameraError) {
-            this.props.onCameraError(event.nativeEvent.error);
+            this.props.onCameraError(event);
         }
     };
 
     _onCameraPermissionMissing = (event) => {
         if (this.props.onCameraPermissionMissing) {
-            this.props.onCameraPermissionMissing(event.nativeEvent.error);
+            this.props.onCameraPermissionMissing(event);
         }
     };
 
     _onClassifierError = (event) => {
         if (this.props.onClassifierError) {
-            this.props.onClassifierError(event.nativeEvent.error);
+            this.props.onClassifierError(event);
         }
     };
 
     _onDeviceNotSupported = (event) => {
         if (this.props.onDeviceNotSupported) {
-            this.props.onDeviceNotSupported(event.nativeEvent.reason);
+            this.props.onDeviceNotSupported(event);
         }
     };
 

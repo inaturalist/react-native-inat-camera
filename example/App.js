@@ -26,10 +26,13 @@ export default class App extends Component<Props> {
 
       this.refs.camera.takePictureAsync({
           pauseAfterCapture: true
-      }).then(path => {
-          console.log('Took photo - ' + path);
+      }).then(picture => {
+          console.log('Took photo - ' + picture.uri);
+
           this.setState(previousState => (
-              { resumeHidden: false }
+              { resumeHidden: false,
+                  content: JSON.stringify(picture.predictions)
+              }
           ));
       });
   }
@@ -42,14 +45,15 @@ export default class App extends Component<Props> {
           ));
   }
 
-  onTaxaDetected = predictions => {
+  onTaxaDetected = event => {
+      let predictions = Object.assign({}, event.nativeEvent);
        this.setState(previousState => (
             { content: JSON.stringify(predictions) }
         ))
   }
 
   onCameraError = error => {
-        Alert.alert(`Camera error: ${error}`)
+        Alert.alert(`Camera error: ${event.nativeEvent.error}`)
   }
 
   onCameraPermissionMissing = event => {

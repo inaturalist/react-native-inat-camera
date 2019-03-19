@@ -148,6 +148,12 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     public void takePictureAsync(ReadableMap options, Promise promise) {
         Bitmap bitmap = mCameraFragment.takePicture();
 
+        if ((options.hasKey(OPTION_PAUSE_AFTER_CAPTURE)) && (options.getBoolean(OPTION_PAUSE_AFTER_CAPTURE))) {
+            // Freeze screen after capture
+            mCameraFragment.pausePreview();
+        }
+
+
         try {
             // Save the bitmap into a JPEG file in the cache directory
             File cacheDirectory = reactContext.getCacheDir();
@@ -159,12 +165,17 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
             fileOutputStream.flush();
             fileOutputStream.close();
 
-            if ((options.hasKey(OPTION_PAUSE_AFTER_CAPTURE)) && (options.getBoolean(OPTION_PAUSE_AFTER_CAPTURE))) {
-                // Freeze screen after capture
-                mCameraFragment.pausePreview();
-            }
+            // Get predictions for that image
+            Collection<Prediction> predictions = mCameraFragment.getPredictionsForImage(bitmap);
+            bitmap.recycle();
 
-            promise.resolve(path);
+            // Return both photo URI and predictions
+
+            WritableMap result = Arguments.createMap();
+            result.putString("uri", path);
+            result.putMap("predictions", predictionsToMap(predictions));
+
+            promise.resolve(result);
         } catch (Exception exc) {
             exc.printStackTrace();
         }
@@ -253,22 +264,14 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
         mLastErrorTime = System.currentTimeMillis();
     }
 
-    @Override
-    public void onTaxaDetected(Collection<Prediction> predictions) {
-        if (System.currentTimeMillis() - mLastPredictionTime < mTaxaDetectionInterval) {
-            // Make sure we don't call this callback too often
-            return;
-        }
 
-        Log.d(TAG, "onTaxaDetected: " + predictions.size());
-
-        // Convert list of predictions into a structure separating results by rank
-
+    /** Converts the predictions array into "clean" map of results (separated by rank), sent back to React Native */
+    private WritableMap predictionsToMap(Collection<Prediction> predictions) {
         WritableMap event = Arguments.createMap();
 
         Map<Integer, WritableArray> ranks = new HashMap<>();
 
-        for (Prediction prediction :  predictions) {
+        for (Prediction prediction : predictions) {
             WritableMap result = Arguments.createMap();
 
             result.putInt("id", Integer.valueOf(prediction.node.key));
@@ -306,6 +309,21 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
                 event.putArray(RANK_LEVEL_TO_NAME.get(rank), ranks.get(rank));
             }
         }
+
+        return event;
+    }
+
+    @Override
+    public void onTaxaDetected(Collection<Prediction> predictions) {
+        if (System.currentTimeMillis() - mLastPredictionTime < mTaxaDetectionInterval) {
+            // Make sure we don't call this callback too often
+            return;
+        }
+
+        Log.d(TAG, "onTaxaDetected: " + predictions.size());
+
+        // Convert list of predictions into a structure separating results by rank
+        WritableMap event = predictionsToMap(predictions);
 
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
                 getId(),

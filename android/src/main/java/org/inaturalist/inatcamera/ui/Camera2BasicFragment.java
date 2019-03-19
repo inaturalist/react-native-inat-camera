@@ -672,10 +672,23 @@ public class Camera2BasicFragment extends Fragment
         return bitmap;
     }
 
+    /** Retrieves predictions for a single frame */
+    public Collection<Prediction> getPredictionsForImage(Bitmap bitmap) {
+        // Resize bitmap to the size the classifier supports
+        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, ImageClassifier.DIM_IMG_SIZE_X, ImageClassifier.DIM_IMG_SIZE_Y, true);
+
+        Collection<Prediction> predictions = mClassifier.classifyFrame(resizedBitmap);
+
+        return predictions;
+    }
+
     /** Pauses the preview */
     public void pausePreview() {
         try {
             captureSession.stopRepeating();
+            synchronized (lock) {
+                mRunClassifier = false;
+            }
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
@@ -684,6 +697,9 @@ public class Camera2BasicFragment extends Fragment
     /** Resumes the preview */
     public void resumePreview() {
         createCameraPreviewSession();
+        synchronized (lock) {
+            mRunClassifier = true;
+        }
     }
 
 
