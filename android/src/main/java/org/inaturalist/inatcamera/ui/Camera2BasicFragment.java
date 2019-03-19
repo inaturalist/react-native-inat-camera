@@ -63,6 +63,8 @@ public class Camera2BasicFragment extends Fragment
 
     private static final String HANDLE_THREAD_NAME = "CameraBackground";
 
+    private static final float DEFAULT_CONFIDENCE_THRESHOLD = 0.8f;
+
     // Reasons why the device is not supported
     private static final int REASON_DEVICE_SUPPORTED = 0;
     private static final int REASON_OS_TOO_OLD = 1;
@@ -83,16 +85,22 @@ public class Camera2BasicFragment extends Fragment
     private String mTaxonomyFilename;
     private boolean mDeviceSupported;
 
+    private float mConfidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD;
+
     public interface CameraListener {
         void onCameraError(String error);
         void onCameraPermissionMissing();
         void onClassifierError(String error);
-        void onTaxaDetected(Collection<Prediction> predictions);
+        void onTaxaDetected(Prediction prediction);
         void onDeviceNotSupported(String reason);
     }
     
     public void setOnCameraErrorListener(CameraListener listener) {
         mCameraCallback = listener;
+    }
+
+    public void setConfidenceThreshold(float confidence) {
+        mConfidenceThreshold = confidence;
     }
 
     /**
@@ -297,7 +305,8 @@ public class Camera2BasicFragment extends Fragment
         }
 
         try {
-            mClassifier = new ImageClassifier(getActivity(), mModelFilename, mTaxonomyFilename);
+            throw new IOException("AAAAA");
+            //mClassifier = new ImageClassifier(getActivity(), mModelFilename, mTaxonomyFilename);
         } catch (IOException e) {
             if (mCameraCallback != null) mCameraCallback.onClassifierError("Failed to initialize an image mClassifier: " + e.getMessage());
         }
@@ -668,10 +677,21 @@ public class Camera2BasicFragment extends Fragment
             return;
         }
 
-        Collection<Prediction> predictions = mClassifier.classifyFrame(bitmap);
+        List<Prediction> predictions = mClassifier.classifyFrame(bitmap);
         bitmap.recycle();
 
-        if (mCameraCallback != null) mCameraCallback.onTaxaDetected(predictions);
+        // Return only one prediction, as accurate as possible (e.g. prefer species over family), that passes the minimal threshold
+        Prediction selectedPrediction = null;
+
+        Collections.reverse(predictions);
+        for (Prediction prediction : predictions) {
+            if (prediction.probability > mConfidenceThreshold) {
+                selectedPrediction = prediction;
+                break;
+            }
+        }
+
+        if (mCameraCallback != null) mCameraCallback.onTaxaDetected(selectedPrediction);
     }
 
     /** Takes a picture */
@@ -682,11 +702,12 @@ public class Camera2BasicFragment extends Fragment
     }
 
     /** Retrieves predictions for a single frame */
-    public Collection<Prediction> getPredictionsForImage(Bitmap bitmap) {
+    public List<Prediction> getPredictionsForImage(Bitmap bitmap) {
         // Resize bitmap to the size the classifier supports
         Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, ImageClassifier.DIM_IMG_SIZE_X, ImageClassifier.DIM_IMG_SIZE_Y, true);
 
-        Collection<Prediction> predictions = mClassifier.classifyFrame(resizedBitmap);
+        List<Prediction> predictions = mClassifier.classifyFrame(resizedBitmap);
+        resizedBitmap.recycle();
 
         return predictions;
     }

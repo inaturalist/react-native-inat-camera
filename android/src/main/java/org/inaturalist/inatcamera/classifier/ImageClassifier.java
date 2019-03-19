@@ -16,6 +16,7 @@ import java.nio.channels.FileChannel;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 /** Classifies images with Tensorflow Lite. */
 public class ImageClassifier {
@@ -65,7 +66,7 @@ public class ImageClassifier {
     }
 
     /** Classifies a frame from the preview stream. */
-    public Collection<Prediction> classifyFrame(Bitmap bitmap) {
+    public List<Prediction> classifyFrame(Bitmap bitmap) {
         if (mTFlite == null) {
             Log.e(TAG, "Image classifier has not been initialized; Skipped.");
             return null;
@@ -88,7 +89,7 @@ public class ImageClassifier {
 
         Object[] input = { imgData };
         mTFlite.runForMultipleInputsOutputs(input, expectedOutputs);
-        Collection<Prediction> predictions = mTaxonomy.predict(expectedOutputs);
+        List<Prediction> predictions = mTaxonomy.predict(expectedOutputs);
         long endTime = SystemClock.uptimeMillis();
 
         return predictions;

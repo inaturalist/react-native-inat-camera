@@ -29,6 +29,8 @@ export default class App extends Component<Props> {
       }).then(picture => {
           console.log('Took photo - ' + picture.uri);
 
+          console.log(picture.predictions);
+
           this.setState(previousState => (
               { resumeHidden: false,
                   content: JSON.stringify(picture.predictions)
@@ -46,7 +48,9 @@ export default class App extends Component<Props> {
   }
 
   onTaxaDetected = event => {
+      console.log('onTaxaDetected');
       let predictions = Object.assign({}, event.nativeEvent);
+      console.log(predictions);
        this.setState(previousState => (
             { content: JSON.stringify(predictions) }
         ))
@@ -81,6 +85,7 @@ export default class App extends Component<Props> {
             modelPath="/sdcard/Download/optimized_model.tflite"
             taxonomyPath="/sdcard/Download/taxonomy_data.csv"
             taxaDetectionInterval="2000"
+            confidenceThreshold="0.7"
             style={styles.camera} />
 
         <View style={styles.buttonContainer}>

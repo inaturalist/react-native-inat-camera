@@ -18,7 +18,11 @@ public class Node {
 
     public transient Node parent;
 
-    private transient List<Node> children = new ArrayList<>();
+    public transient List<Node> children = new ArrayList<>();
+
+    public String toString() {
+        return String.format("%s: %s (p = %s)", key, name, parent != null ? parent.key : "N/A");
+    }
 
     // Initialize the node from a CSV line
     public Node(String line) {
@@ -30,6 +34,9 @@ public class Node {
         this.rank = Integer.parseInt(parts[3]);
         this.leafId = parts[4];
         this.name = parts[5];
+    }
+
+    public Node() {
     }
 
     public void addChild(Node child) {

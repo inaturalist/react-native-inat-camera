@@ -37,6 +37,11 @@ public class INatCameraViewManager extends SimpleViewManager<INatCameraView> {
         view.setTaxaDetectionInterval(Integer.valueOf(interval));
     }
 
+    @ReactProp(name = "confidenceThreshold")
+    public void setConfidenceThreshold(INatCameraView view, String threshold) {
+        view.setConfidenceThreshold(Float.valueOf(threshold));
+    }
+
     @ReactProp(name = "modelPath")
     public void setModelPath(INatCameraView view, String path) {
         view.setModelPath(path);

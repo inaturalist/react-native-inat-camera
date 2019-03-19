@@ -12,20 +12,35 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;  
 
-/** Taxonmy data structure */
+
+/** Taxonomy data structure */
 public class Taxonomy {
     private static final String TAG = "Taxonomy";
-
-    // Max number of predictions to return
-    private static final int MAX_PREDICTIONS = 30;
 
     List<Node> mNodes;
     Map<String, Node> mNodeByKey;
     Map<String, Node> mNodeByLeafId;
-    Node mRootNode;
+    Node mLifeNode;
+
+    List<Node> mSpeciesNodes;
+    List<Node> mGenusNodes;
+    List<Node> mFamilyNodes;
+    List<Node> mOrderNodes;
+    List<Node> mClassNodes;
+    List<Node> mPhylumNodes;
+    List<Node> mKingdomNodes;
 
     Taxonomy(InputStream is) {
+
+        mSpeciesNodes = new ArrayList<>();
+        mGenusNodes = new ArrayList<>();
+        mFamilyNodes = new ArrayList<>();
+        mOrderNodes = new ArrayList<>();
+        mClassNodes = new ArrayList<>();
+        mPhylumNodes = new ArrayList<>();
+        mKingdomNodes = new ArrayList<>();
 
         // Read the taxonomy CSV file into a list of nodes
 
@@ -35,7 +50,32 @@ public class Taxonomy {
 
             mNodes = new ArrayList<>();
             for (String line; (line = reader.readLine()) != null; ) {
-                mNodes.add(new Node(line));
+                Node node = new Node(line);
+                mNodes.add(node);
+
+                switch (node.rank) {
+                    case 10:
+                        mSpeciesNodes.add(node);
+                        break;
+                    case 20:
+                        mGenusNodes.add(node);
+                        break;
+                    case 30:
+                        mFamilyNodes.add(node);
+                        break;
+                    case 40:
+                        mOrderNodes.add(node);
+                        break;
+                    case 50:
+                        mClassNodes.add(node);
+                        break;
+                    case 60:
+                        mPhylumNodes.add(node);
+                        break;
+                    case 70:
+                        mKingdomNodes.add(node);
+                        break;
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -44,6 +84,9 @@ public class Taxonomy {
         // Convert list of nodes into a structure with parents and children
         mNodeByKey = new HashMap<>();
         mNodeByLeafId = new HashMap<>();
+        
+        mLifeNode = createLifeNode();
+
         for (Node node: mNodes) {
             mNodeByKey.put(node.key, node);
 
@@ -57,56 +100,107 @@ public class Taxonomy {
                 Node parent = mNodeByKey.get(node.parentKey);
                 parent.addChild(node);
             } else {
-                mRootNode = node;
+                mLifeNode.addChild(node);
             }
         }
 
+    }
+
+    private Node createLifeNode() {
+        Node node = new Node();
+        node.key = "48460";
+        node.rank = 100;
+        node.classId = "";
+        node.name = "Life";
+        node.parent = null;
+        return node;
     }
 
     public int getModelSize() {
         return mNodeByLeafId.size();
     }
 
-    public Collection<Prediction> predict(Map<Integer, Object> outputs) {
+    public List<Prediction> predict(Map<Integer, Object> outputs) {
         // Get raw predictions
-        List<Prediction> predictions = doPredictions(outputs);
-
-        // Sort by probabilities
-        Collections.sort(predictions, new Comparator<Prediction>() {
-            @Override
-            public int compare(Prediction p1, Prediction p2) {
-                return p2.probability.compareTo(p1.probability);
-            }
-        });
-
-        // Return only a sub-set of the results
-        return predictions.subList(0, predictions.size() > MAX_PREDICTIONS ? MAX_PREDICTIONS : predictions.size());
-    }
-
-    /** Performs the prediction process, according to a list of outputs from the TFLite model */
-    private List<Prediction> doPredictions(Map<Integer, Object> outputs) {
         float[] results = ((float[][]) outputs.get(0))[0];
 
-        List<Prediction> predictions = new ArrayList<>();
+        Map<String, Float> scores = aggregateScores(results);
+        List<Prediction> bestBranch = buildBestBranchFromScores(scores);
+        
+        return bestBranch;
+    }
 
-        for (int i = 0; i < results.length; i++) {
-            if (!mNodeByLeafId.containsKey(String.valueOf(i))) {
-                Log.w(TAG, String.format("Results from model file contains an invalid leaf ID: %d", i));
-                continue;
-            }
-            Node node = mNodeByLeafId.get(String.valueOf(i));
-            if (!node.key.matches("\\d+(?:\\.\\d+)?")) {
-                // Key is not a valid number
-                Log.w(TAG, String.format("Results from model file contains a node with an invalid key (non numeric): %s", node.key));
-                continue;
-            }
-            
-            Prediction prediction = new Prediction(node, results[i]);
-            prediction.rank = prediction.node.rank;
-            predictions.add(prediction);
+
+    /** Aggregates scores for nodes, including non-leaf nodes (so each non-leaf node has a score of the sum of all its dependents) */
+    private Map<String, Float> aggregateScores(float[] results) {
+        List<Prediction> predictions = new ArrayList<>();
+        Map<String, Float> scores = new HashMap<>();
+        
+        // Rank 10: no children
+        for (Node node : mSpeciesNodes) {
+            float score = results[Integer.valueOf(node.leafId)];
+            scores.put(node.key, score);
         }
 
-        return predictions;
+
+        // Nodes with children
+        List<List<Node>> ranks = Arrays.asList(
+            mGenusNodes, mFamilyNodes, mOrderNodes,
+            mClassNodes, mPhylumNodes, mKingdomNodes
+        );
+
+
+        // Work from the bottom up
+        for (List<Node> rankNodes : ranks) {
+            for (Node node : rankNodes) {
+                float aggregateScore = 0.0f;
+                for (Node child : node.children) {
+                    float childScore = scores.get(child.key);
+                    aggregateScore += childScore;
+                }
+                scores.put(node.key, aggregateScore);
+            }
+        }
+
+
+        return scores;
     }
+
+
+    /** Finds the best branch from all result scores */
+    private List<Prediction> buildBestBranchFromScores(Map<String, Float> scores) {
+        List<Prediction> bestBranch = new ArrayList<>();
+
+        // Start from life
+        Node currentNode = mLifeNode;
+
+        // Always life
+        Prediction lifePrediction = new Prediction(currentNode, 1.0f);
+        bestBranch.add(lifePrediction);
+
+
+        while (currentNode.children.size() > 0) {
+            // Find the best child of the current node
+            Node bestChild = null;
+            float bestScore = -1;
+            for (Node child : currentNode.children) {
+                float childScore = scores.get(child.key);
+                if (childScore > bestScore) {
+                    bestScore = childScore;
+                    bestChild = child;
+                }
+            }
+
+            // Add the prediction for this best child to the branch
+            Prediction bestChildPrediction = new Prediction(bestChild, bestScore);
+            bestBranch.add(bestChildPrediction);
+
+            // Redo the loop, looking for the best sub-child among this best child
+            currentNode = bestChild;
+        }
+
+        return bestBranch;
+    }
+
 }
 

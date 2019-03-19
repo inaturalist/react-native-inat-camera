@@ -23,6 +23,7 @@ export default class INatCamera extends React.Component<PropsType, StateType> {
         taxaDetectionInterval: PropTypes.string,
         modelPath: PropTypes.string,
         taxonomyPath: PropTypes.string,
+        confidenceThreshold: PropTypes.string,
         ...ViewPropTypes,
     };
 
@@ -90,6 +91,7 @@ export default class INatCamera extends React.Component<PropsType, StateType> {
                     modelPath={this.props.modelPath}
                     taxonomyPath={this.props.taxonomyPath}
                     taxaDetectionInterval={this.props.taxaDetectionInterval}
+                    confidenceThreshold={this.props.confidenceThreshold}
                 />
             </View>
         );

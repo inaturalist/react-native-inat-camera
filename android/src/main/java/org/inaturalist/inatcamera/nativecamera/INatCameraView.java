@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Arrays;  
 
 public class INatCameraView extends FrameLayout implements Camera2BasicFragment.CameraListener {
     private static final String TAG = "INatCameraView";
@@ -52,7 +53,7 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     static {
         Map<Integer, String> map = new HashMap<>() ;
 
-        map.put(100, "root");
+        map.put(100, "stateofmatter");
         map.put(70, "kingdom");
         map.put(67, "subkingdom");
         map.put(60, "phylum");
@@ -128,6 +129,11 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
         mCameraFragment.setOnCameraErrorListener(this);
     }
 
+    public void setConfidenceThreshold(float confidence) {
+        mCameraFragment.setConfidenceThreshold(confidence);
+    }
+
+
     public void setModelPath(String path) {
         mCameraFragment.setModelFilename(path);
     }
@@ -166,7 +172,7 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
             fileOutputStream.close();
 
             // Get predictions for that image
-            Collection<Prediction> predictions = mCameraFragment.getPredictionsForImage(bitmap);
+            List<Prediction> predictions = mCameraFragment.getPredictionsForImage(bitmap);
             bitmap.recycle();
 
             // Return both photo URI and predictions
@@ -265,6 +271,36 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     }
 
 
+    /** Converts a prediction result to a map */
+    private WritableMap nodeToMap(Prediction prediction) {
+        WritableMap result = Arguments.createMap();
+
+        result.putInt("id", Integer.valueOf(prediction.node.key));
+        result.putString("name", prediction.node.name);
+        result.putDouble("score", prediction.probability);
+        result.putInt("rank", prediction.node.rank);
+
+        // Create the ancestors list for the result
+        List<Integer> ancestorsList = new ArrayList<>();
+        Node currentNode = prediction.node;
+        while (currentNode.parent != null) {
+            if ((currentNode.parent.key != null) && (currentNode.parent.key.matches("\\d+"))) {
+                ancestorsList.add(Integer.valueOf(currentNode.parent.key));
+            }
+            currentNode = currentNode.parent;
+        }
+        Collections.reverse(ancestorsList);
+        WritableArray ancestors = Arguments.createArray();
+        for (Integer id : ancestorsList) {
+            ancestors.pushInt(id);
+        }
+
+        result.putArray("ancestor_ids", ancestors);
+
+        return result;
+    }
+
+
     /** Converts the predictions array into "clean" map of results (separated by rank), sent back to React Native */
     private WritableMap predictionsToMap(Collection<Prediction> predictions) {
         WritableMap event = Arguments.createMap();
@@ -272,35 +308,13 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
         Map<Integer, WritableArray> ranks = new HashMap<>();
 
         for (Prediction prediction : predictions) {
-            WritableMap result = Arguments.createMap();
+            WritableMap result = nodeToMap(prediction);
 
-            result.putInt("id", Integer.valueOf(prediction.node.key));
-            result.putString("name", prediction.node.name);
-            result.putDouble("score", prediction.probability);
-            result.putInt("rank", prediction.rank);
-
-            // Create the ancestors list for the result
-            List<Integer> ancestorsList = new ArrayList<>();
-            Node currentNode = prediction.node;
-            while (currentNode.parent != null) {
-                if (currentNode.parent.key.matches("\\d+")) {
-                    ancestorsList.add(Integer.valueOf(currentNode.parent.key));
-                }
-                currentNode = currentNode.parent;
-            }
-            Collections.reverse(ancestorsList);
-            WritableArray ancestors = Arguments.createArray();
-            for (Integer id : ancestorsList) {
-                ancestors.pushInt(id);
+            if (!ranks.containsKey(prediction.node.rank)) {
+                ranks.put(prediction.node.rank, Arguments.createArray());
             }
 
-            result.putArray("ancestor_ids", ancestors);
-
-            if (!ranks.containsKey(prediction.rank)) {
-                ranks.put(prediction.rank, Arguments.createArray());
-            }
-
-            ranks.get(prediction.rank).pushMap(result);
+            ranks.get(prediction.node.rank).pushMap(result);
         }
 
         // Convert from rank level to rank name
@@ -314,15 +328,14 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     }
 
     @Override
-    public void onTaxaDetected(Collection<Prediction> predictions) {
+    public void onTaxaDetected(Prediction prediction) {
         if (System.currentTimeMillis() - mLastPredictionTime < mTaxaDetectionInterval) {
             // Make sure we don't call this callback too often
             return;
         }
 
-        Log.d(TAG, "onTaxaDetected: " + predictions.size());
-
-        // Convert list of predictions into a structure separating results by rank
+        // Convert Prediction into a structure separating by rank name
+        List<Prediction> predictions = Arrays.asList(prediction);
         WritableMap event = predictionsToMap(predictions);
 
         reactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
