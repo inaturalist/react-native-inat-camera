@@ -22,6 +22,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.hardware.camera2.CameraAccessException;
 import android.media.ImageReader;
 import android.os.Build;
 import android.os.Bundle;
@@ -663,6 +664,28 @@ public class Camera2BasicFragment extends Fragment
 
         if (mCameraCallback != null) mCameraCallback.onTaxaDetected(predictions);
     }
+
+    /** Takes a picture */
+    public Bitmap takePicture() {
+        Bitmap bitmap = textureView.getBitmap();
+
+        return bitmap;
+    }
+
+    /** Pauses the preview */
+    public void pausePreview() {
+        try {
+            captureSession.stopRepeating();
+        } catch (CameraAccessException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /** Resumes the preview */
+    public void resumePreview() {
+        createCameraPreviewSession();
+    }
+
 
     /** Compares two {@code Size}s based on their areas. */
     private static class CompareSizesByArea implements Comparator<Size> {

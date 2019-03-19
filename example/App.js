@@ -8,26 +8,48 @@
  */
 
 import React, {Component} from 'react';
-import {Platform, StyleSheet, Text, View, Alert} from 'react-native';
+import {Platform, StyleSheet, Text, View, Alert, Button} from 'react-native';
 import INatCamera from './INatCamera';
 
 type Props = {};
 export default class App extends Component<Props> {
   constructor(props) {
     super(props);
-    this.state = { content: '' };
+    this.state = { content: '', resumeHidden: true };
+
+      console.log('Initialized page');
+
   }   
 
-  onTaxaDetected = event => {
-       let predictions = Object.assign({}, event.nativeEvent);
+  onTakePhoto = () => {
+      console.log('Taking picture', this.refs.camera);
 
+      this.refs.camera.takePictureAsync({
+          pauseAfterCapture: true
+      }).then(path => {
+          console.log('Took photo - ' + path);
+          this.setState(previousState => (
+              { resumeHidden: false }
+          ));
+      });
+  }
+
+  onResumePreview = () => {
+      console.log('Resuming preview');
+      this.refs.camera.resumePreview();
+          this.setState(previousState => (
+              { resumeHidden: true }
+          ));
+  }
+
+  onTaxaDetected = predictions => {
        this.setState(previousState => (
             { content: JSON.stringify(predictions) }
         ))
   }
 
-  onCameraError = event => {
-        Alert.alert(`Camera error: ${event.nativeEvent.error}`)
+  onCameraError = error => {
+        Alert.alert(`Camera error: ${error}`)
   }
 
   onCameraPermissionMissing = event => {
@@ -46,6 +68,7 @@ export default class App extends Component<Props> {
     return (
       <View style={styles.container}>
         <INatCamera
+            ref="camera"
             onTaxaDetected={this.onTaxaDetected}
             onCameraError={this.onCameraError}
             onCameraPermissionMissing={this.onCameraPermissionMissing}
@@ -56,6 +79,30 @@ export default class App extends Component<Props> {
             taxaDetectionInterval="2000"
             style={styles.camera} />
 
+        <View style={styles.buttonContainer}>
+            {
+                this.state.resumeHidden ?
+                <Button
+                    onPress={this.onTakePhoto}
+                    style={styles.takePhoto}
+                    color="#841584"
+                    title="Take Photo"
+                    />
+                : null
+            }
+            {
+                this.state.resumeHidden ? null :
+            <Button
+                ref="resumePreview"
+                onPress={this.onResumePreview}
+                style={styles.takePhoto}
+                color="#00FF00"
+                title="Resume preview"
+                />
+            }
+
+        </View>
+
         <Text style={styles.predictions}>
             {this.state.content}
         </Text>
@@ -65,6 +112,32 @@ export default class App extends Component<Props> {
 }
 
 const styles = StyleSheet.create({
+  buttonContainer: {
+      top: 10,
+      left: 10,
+      width: 200,
+      height: 50,
+      position: 'absolute',
+  },
+
+ hide: {
+     display: 'none',
+     width: 0,
+     height: 0
+ },
+
+  takePhoto: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      overflow: 'hidden',
+      padding: 12,
+      textAlign:'center',
+      borderColor: 'white',
+      width: 200,
+      height: 50,
+      borderWidth: 1,
+      borderRadius: 12,
+  },
   container: {
     top: 0,
     left: 0,

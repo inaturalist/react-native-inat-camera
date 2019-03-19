@@ -4,12 +4,17 @@ import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.SimpleViewManager;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
+import com.facebook.react.bridge.ReactMethod;
+import android.widget.Toast;
+
 
 import java.util.Map;
 
 public class INatCameraViewManager extends SimpleViewManager<INatCameraView> {
 
     private static final String REACT_CLASS = "RCT" + INatCameraView.class.getSimpleName();
+
+    private ThemedReactContext mContext;
 
     @Override
     public String getName() {
@@ -18,7 +23,13 @@ public class INatCameraViewManager extends SimpleViewManager<INatCameraView> {
 
     @Override
     protected INatCameraView createViewInstance(ThemedReactContext reactContext) {
+        mContext = reactContext;
         return new INatCameraView(reactContext, reactContext.getCurrentActivity());
+    }
+
+    @ReactMethod
+    public void takePictureAsync(String message) {
+        Toast.makeText(mContext, message, 1000).show();
     }
 
     @ReactProp(name = "taxaDetectionInterval")

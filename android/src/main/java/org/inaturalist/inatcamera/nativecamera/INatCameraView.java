@@ -1,5 +1,13 @@
 package org.inaturalist.inatcamera.nativecamera;
 
+import android.os.Environment;
+import java.text.SimpleDateFormat;
+import java.io.File;
+import java.io.FileOutputStream;
+import android.graphics.Bitmap;
+import java.util.Calendar;
+
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -12,6 +20,8 @@ import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
+import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.ReadableMap;
 
 import org.inaturalist.inatcamera.R;
 import org.inaturalist.inatcamera.classifier.Node;
@@ -25,9 +35,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-
 public class INatCameraView extends FrameLayout implements Camera2BasicFragment.CameraListener {
     private static final String TAG = "INatCameraView";
+
+    public static final String OPTION_PAUSE_AFTER_CAPTURE = "pauseAfterCapture";
 
     public static final String EVENT_NAME_ON_TAXA_DETECTED = "onTaxaDetected";
     public static final String EVENT_NAME_ON_CAMERA_ERROR = "onCameraError";
@@ -128,6 +139,38 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     public void setTaxaDetectionInterval(int interval) {
         mTaxaDetectionInterval = interval;
     }
+    
+
+    public void resumePreview() {
+        mCameraFragment.resumePreview();
+    }
+    
+    public void takePictureAsync(ReadableMap options, Promise promise) {
+        Bitmap bitmap = mCameraFragment.takePicture();
+
+        try {
+            // Save the bitmap into a JPEG file in the cache directory
+            File cacheDirectory = reactContext.getCacheDir();
+            String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
+            String path = cacheDirectory.getPath() + File.separator + "IMG_" + timeStamp + ".jpg";
+
+            FileOutputStream fileOutputStream = new FileOutputStream(path);
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
+            fileOutputStream.flush();
+            fileOutputStream.close();
+
+            if ((options.hasKey(OPTION_PAUSE_AFTER_CAPTURE)) && (options.getBoolean(OPTION_PAUSE_AFTER_CAPTURE))) {
+                // Freeze screen after capture
+                mCameraFragment.pausePreview();
+            }
+
+            promise.resolve(path);
+        } catch (Exception exc) {
+            exc.printStackTrace();
+        }
+    }
+
+
 
     @Override
     public void requestLayout() {
