@@ -446,6 +446,15 @@ public class Camera2BasicFragment extends Fragment
                                 maxPreviewHeight,
                                 largest);
 
+
+                // We fit the aspect ratio of TextureView to the size of preview we picked.
+                int orientation = getResources().getConfiguration().orientation;
+                if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                    textureView.setAspectRatio(previewSize.getWidth(), previewSize.getHeight());
+                } else {
+                    textureView.setAspectRatio(previewSize.getHeight(), previewSize.getWidth());
+                }
+
                 this.cameraId = cameraId;
                 return;
             }
