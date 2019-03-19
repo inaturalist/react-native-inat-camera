@@ -17,11 +17,11 @@ typedef void(^BranchClassificationHandler)(NSArray *topBranch, NSError *error);
 
 @interface NATClassifier : NSObject
 
-- (instancetype)initWithModelFile:(NSString *)modelPath taxonmyFile:(NSString *)taxonomyPath;
-- (void)classifyFrame:(CVImageBufferRef)pixelBuf orientation:(CGImagePropertyOrientation)orientation;
-- (void)classifyImageData:(NSData *)data orientation:(CGImagePropertyOrientation)orientation handler:(BranchClassificationHandler)handler;
-
 @property (assign) id <NATClassifierDelegate> delegate;
 @property float threshold;
+@property (readonly) NSArray *latestBestBranch;
+
+- (instancetype)initWithModelFile:(NSString *)modelPath taxonmyFile:(NSString *)taxonomyPath;
+- (void)classifyFrame:(CVImageBufferRef)pixelBuf orientation:(CGImagePropertyOrientation)orientation;
 
 @end

@@ -210,21 +210,11 @@
             }
             
             NSString *imageUrlString = [[NSURL fileURLWithPath:imagePath] absoluteString];
-            NSMutableDictionary *responseDict = [NSMutableDictionary dictionary];
-            responseDict[@"uri"] = imageUrlString;
-            
-            [self.classifier classifyImageData:fixedImageData
-                                   orientation:[self exifOrientationFromDeviceOrientation]
-                                       handler:^(NSArray *topBranch, NSError *error) {
-                                           if (error) {
-                                               reject(@"classify_error",
-                                                      @"There was a classify error",
-                                                      error);
-                                           } else {
-                                               responseDict[@"predictions"] = topBranch;
-                                               resolver(responseDict);
-                                           }
-                                       }];
+            NSDictionary *responseDict = @{
+                                           @"uri": imageUrlString,
+                                           @"predictions": [self.classifier latestBestBranch],
+                                           };
+            resolver(responseDict);
         }
     }];
 }
