@@ -1,12 +1,12 @@
 {
-  "name": "INatCamera",
+  "name": "react-native-inat-camera",
   "version": "1.0.0",
+  "main": "index.js",
   "scripts": {
     "start": "node node_modules/react-native/local-cli/cli.js start"
   },
-  "dependencies": {
-    "react": "16.3.1",
-    "react-native": "0.55.4",
-    "prop-types": "15.6.1"
+  "peerDependencies": {
+    "react-native": "^0.57.4",
+    "prop-types": "^15.7.2"
   }
 }

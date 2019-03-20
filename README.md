@@ -1,6 +1,10 @@
 # react-native-inat-camera
 React Native package that provides a camera with optional species recognition.
 
+## iOS
+
+The `ios` subfolder contains the source code for the iOS library project. You should need to just `npm install inaturalist/react-native-inat-camera` and then perhaps `react-native link react-native-inat-camera` and you should be good to go. You'll need to provide the model and taxonomy files.
+
 
 ## Android
 
