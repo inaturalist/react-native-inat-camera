@@ -10,7 +10,7 @@
 #import "NATCameraView.h"
 
 @interface RCTINatCameraViewManager () <NATCameraDelegate>
-
+@property NATCameraView *cameraView;
 @end
 
 @implementation RCTINatCameraViewManager
@@ -20,6 +20,22 @@ RCT_EXPORT_VIEW_PROPERTY(onTaxaDetected, RCTBubblingEventBlock)
 RCT_EXPORT_VIEW_PROPERTY(confidenceThreshold, float)
 RCT_EXPORT_VIEW_PROPERTY(taxaDetectionInterval, NSInteger)
 
+RCT_REMAP_METHOD(takePictureAsync,
+                 takePictureWithResolver:(RCTPromiseResolveBlock)resolve
+                 rejecter:(RCTPromiseRejectBlock)reject)
+{
+    
+    if (self.cameraView) {
+        [self.cameraView takePictureWithResolver:resolve
+                                        rejecter:reject];
+    } else {
+        NSError *error = [NSError errorWithDomain:@"org.inaturalist.react-native-inat-camera"
+                                             code:404
+                                         userInfo:nil];
+        reject(@"no_camera", @"There was no camera", error);
+    }
+}
+
 - (UIView *)view
 {
     NSBundle *bundle = [NSBundle mainBundle];
@@ -28,7 +44,8 @@ RCT_EXPORT_VIEW_PROPERTY(taxaDetectionInterval, NSInteger)
     
     NATCameraView *camera = [[NATCameraView alloc] initWithModelFile:modelPath
                                                         taxonomyFile:taxonomyPath];
-    
+    self.cameraView = camera;
+
     camera.delegate = self;
     return camera;
 }

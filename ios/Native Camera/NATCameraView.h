@@ -28,4 +28,7 @@
 
 - (instancetype)initWithModelFile:(NSString *)modelFile taxonomyFile:(NSString *)taxonomyFile;
 
+- (void)takePictureWithResolver:(RCTPromiseResolveBlock)resolver
+                       rejecter:(RCTPromiseRejectBlock)reject;
+
 @end

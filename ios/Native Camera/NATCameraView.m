@@ -158,7 +158,33 @@
     self.previewLayer = nil;
 }
 
-// TODO: take another look at this, it looks like garbarge to me
+- (void)takePictureWithResolver:(RCTPromiseResolveBlock)resolver rejecter:(RCTPromiseRejectBlock)reject {
+    AVCaptureConnection *connection = [self.stillImageOutput connectionWithMediaType:AVMediaTypeVideo];
+    [self.stillImageOutput captureStillImageAsynchronouslyFromConnection:connection completionHandler: ^(CMSampleBufferRef imageSampleBuffer, NSError *error) {
+        
+        if (error) {
+            reject(@"capture_error", @"There was a capture error", error);
+        } else {
+            NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageSampleBuffer];
+            NSArray *array = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+            NSString *cacheDirectory = [array firstObject];
+            NSString *fileName = [NSString stringWithFormat:@"%@.jpg", [[NSUUID UUID] UUIDString]];
+            NSString *imagePath = [cacheDirectory stringByAppendingPathComponent:fileName];
+            NSError *writeError = nil;
+            [imageData writeToFile:imagePath options:NSDataWritingAtomic error:&writeError];
+            if (writeError) {
+                reject(@"write_error", @"There was an error saving photo", writeError);
+            }
+            
+            NSString *imageUrlString = [[NSURL fileURLWithPath:imagePath] absoluteString];
+            NSDictionary *responseDict = @{
+                                           @"uri": imageUrlString,
+                                           };
+            resolver(responseDict);
+        }
+    }];
+}
+
 - (CGImagePropertyOrientation)exifOrientationFromDeviceOrientation {
     UIDeviceOrientation deviceOrientation = UIDevice.currentDevice.orientation;
     
