@@ -172,6 +172,7 @@
 
 - (void)takePictureWithResolver:(RCTPromiseResolveBlock)resolver rejecter:(RCTPromiseRejectBlock)reject {
     AVCaptureConnection *connection = [self.stillImageOutput connectionWithMediaType:AVMediaTypeVideo];
+    
     [self.stillImageOutput captureStillImageAsynchronouslyFromConnection:connection completionHandler: ^(CMSampleBufferRef imageSampleBuffer, NSError *error) {
         
         if (error) {
@@ -189,10 +190,21 @@
             }
             
             NSString *imageUrlString = [[NSURL fileURLWithPath:imagePath] absoluteString];
-            NSDictionary *responseDict = @{
-                                           @"uri": imageUrlString,
-                                           };
-            resolver(responseDict);
+            NSMutableDictionary *responseDict = [NSMutableDictionary dictionary];
+            responseDict[@"uri"] = imageUrlString;
+            
+            [self.classifier classifyImageData:imageData
+                                   orientation:[self exifOrientationFromDeviceOrientation]
+                                       handler:^(NSArray *topBranch, NSError *error) {
+                                           if (error) {
+                                               reject(@"classify_error",
+                                                      @"There was a classify error",
+                                                      error);
+                                           } else {
+                                               responseDict[@"predictions"] = topBranch;
+                                               resolver(responseDict);
+                                           }
+                                       }];
         }
     }];
 }

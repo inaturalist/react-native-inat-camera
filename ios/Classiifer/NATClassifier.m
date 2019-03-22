@@ -16,6 +16,7 @@
 
 @interface NATClassifier ()
 @property NSString *modelPath;
+@property VNCoreMLModel *visionModel;
 @property NATTaxonomy *taxonomy;
 @property NSArray *requests;
 @end
@@ -51,6 +52,7 @@
                                                           error:&modelError];
     NSAssert(modelError == nil, @"error making vision model: %@", modelError.localizedDescription);
     NSAssert(visionModel, @"unable to make vision model");
+    self.visionModel = visionModel;
     
     
     VNCoreMLRequest *objectRec = [[VNCoreMLRequest alloc] initWithModel:visionModel];
@@ -81,6 +83,39 @@
     NSError *requestError = nil;
     [handler performRequests:self.requests
                        error:&requestError];
+    NSAssert(requestError == nil, @"got a request error: %@", requestError.localizedDescription);
+}
+
+-(void)classifyImageData:(NSData *)data orientation:(CGImagePropertyOrientation)orientation handler:(BranchClassificationHandler)predictionCompletion {
+    
+    VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithData:data
+                                                                                 orientation:orientation
+                                                                                     options:@{}];
+    
+    VNRequestCompletionHandler requestHandler = ^(VNRequest * _Nonnull request, NSError * _Nullable error) {
+        VNCoreMLFeatureValueObservation *firstResult = request.results.firstObject;
+        MLFeatureValue *firstFV = firstResult.featureValue;
+        MLMultiArray *mm = firstFV.multiArrayValue;
+        NSArray *topBranch = [self.taxonomy inflateTopBranchFromClassification:mm
+                                                           confidenceThreshold:self.threshold];
+        
+        NSMutableArray *topBranchDicts = [NSMutableArray arrayWithCapacity:topBranch.count];
+        for (NATPrediction *branch in topBranch) {
+            [topBranchDicts addObject:[branch asDict]];
+        }
+        
+        predictionCompletion(topBranchDicts, nil);
+    };
+
+    VNCoreMLRequest *objectRecognition = [[VNCoreMLRequest alloc] initWithModel:self.visionModel
+                                                              completionHandler:requestHandler];
+    objectRecognition.imageCropAndScaleOption = VNImageCropAndScaleOptionCenterCrop;
+    NSError *requestError = nil;
+    [imageRequestHandler performRequests:@[objectRecognition]
+                                   error:&requestError];
+    if (requestError) {
+        predictionCompletion(nil, requestError);
+    }
     NSAssert(requestError == nil, @"got a request error: %@", requestError.localizedDescription);
 }
 

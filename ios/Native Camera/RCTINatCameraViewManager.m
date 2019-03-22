@@ -24,7 +24,6 @@ RCT_REMAP_METHOD(takePictureAsync,
                  takePictureWithResolver:(RCTPromiseResolveBlock)resolve
                  rejecter:(RCTPromiseRejectBlock)reject)
 {
-    
     if (self.cameraView) {
         [self.cameraView takePictureWithResolver:resolve
                                         rejecter:reject];
