@@ -170,21 +170,56 @@
     self.previewLayer = nil;
 }
 
+- (AVCaptureVideoOrientation)activeVideoOrientation {
+    switch ([[UIDevice currentDevice] orientation]) {
+        case UIDeviceOrientationLandscapeLeft:
+            return AVCaptureVideoOrientationLandscapeRight;
+        case UIDeviceOrientationLandscapeRight:
+            return AVCaptureVideoOrientationLandscapeLeft;
+        case UIDeviceOrientationPortraitUpsideDown:
+            return AVCaptureVideoOrientationPortraitUpsideDown;
+        default:
+            return AVCaptureVideoOrientationPortrait;
+    }
+}
+
 - (void)takePictureWithResolver:(RCTPromiseResolveBlock)resolver rejecter:(RCTPromiseRejectBlock)reject {
     AVCaptureConnection *connection = [self.stillImageOutput connectionWithMediaType:AVMediaTypeVideo];
-    
+    [connection setVideoOrientation:[self activeVideoOrientation]];
     [self.stillImageOutput captureStillImageAsynchronouslyFromConnection:connection completionHandler: ^(CMSampleBufferRef imageSampleBuffer, NSError *error) {
         
         if (error) {
             reject(@"capture_error", @"There was a capture error", error);
         } else {
-            NSData *imageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageSampleBuffer];
+            NSData *takenImageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageSampleBuffer];
+            UIImage *takenImage = [UIImage imageWithData:takenImageData];
+
+            CFDictionaryRef exifAttachments = CMGetAttachment(imageSampleBuffer, kCGImagePropertyExifDictionary, NULL);
+            NSMutableDictionary *metadata = (__bridge NSMutableDictionary *)exifAttachments;
+            
+            int imageRotation;
+            switch (takenImage.imageOrientation) {
+                case UIImageOrientationLeft:
+                    imageRotation = 90;
+                    break;
+                case UIImageOrientationRight:
+                    imageRotation = -90;
+                    break;
+                case UIImageOrientationDown:
+                    imageRotation = 180;
+                    break;
+                default:
+                    imageRotation = 0;
+            }
+            
+            metadata[@"Orientation"] = @(imageRotation);
+            
             NSArray *array = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
             NSString *cacheDirectory = [array firstObject];
             NSString *fileName = [NSString stringWithFormat:@"%@.jpg", [[NSUUID UUID] UUIDString]];
             NSString *imagePath = [cacheDirectory stringByAppendingPathComponent:fileName];
             NSError *writeError = nil;
-            [imageData writeToFile:imagePath options:NSDataWritingAtomic error:&writeError];
+            [takenImageData writeToFile:imagePath options:NSDataWritingAtomic error:&writeError];
             if (writeError) {
                 reject(@"write_error", @"There was an error saving photo", writeError);
             }
@@ -193,7 +228,7 @@
             NSMutableDictionary *responseDict = [NSMutableDictionary dictionary];
             responseDict[@"uri"] = imageUrlString;
             
-            [self.classifier classifyImageData:imageData
+            [self.classifier classifyImageData:takenImageData
                                    orientation:[self exifOrientationFromDeviceOrientation]
                                        handler:^(NSArray *topBranch, NSError *error) {
                                            if (error) {
