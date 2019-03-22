@@ -10,7 +10,7 @@
 #import "NATCameraView.h"
 
 @interface RCTINatCameraViewManager () <NATCameraDelegate>
-@property NATCameraView *cameraView;
+@property (assign) NATCameraView *cameraView;
 @end
 
 @implementation RCTINatCameraViewManager
