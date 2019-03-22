@@ -6,8 +6,6 @@
 //  Copyright © 2019 California Academy of Sciences. All rights reserved.
 //
 
-#import "NATCameraView.h"
-
 @import AVFoundation;
 @import Vision;
 @import CoreML;
@@ -20,6 +18,7 @@
 }
 @property AVCaptureVideoPreviewLayer *previewLayer;
 @property AVCaptureVideoDataOutput *videoDataOutput;
+@property AVCaptureStillImageOutput *stillImageOutput;
 @property AVCaptureSession *session;
 @property dispatch_queue_t  videoDataOutputQueue;
 @property CGSize bufferSize;
@@ -96,6 +95,19 @@
     }
     [self.session addInput:input];
     
+    // add and configure the still output for capture
+    self.stillImageOutput = [[AVCaptureStillImageOutput alloc] init];
+    if (![self.session canAddOutput:self.stillImageOutput]) {
+        NSLog(@"couldn't add still capture data output to the session.");
+        [self.session commitConfiguration];
+        return;
+    }
+    [self.session addOutput:self.stillImageOutput];
+    self.stillImageOutput.outputSettings = @{
+                                             AVVideoCodecKey : AVVideoCodecJPEG
+                                             };
+    [self.stillImageOutput setHighResolutionStillImageOutputEnabled:YES];
+
     // add and configure the video output
     self.videoDataOutput = [[AVCaptureVideoDataOutput alloc] init];
     if (![self.session canAddOutput:self.videoDataOutput]) {
