@@ -109,47 +109,11 @@
     return self;
 }
 
-- (NATPrediction *)inflateTopClassification:(MLMultiArray *)classificationResult {
-    NSArray *rawPredictions = [self predictionsFromClassifications:classificationResult];
-    // descending sort
-    NSArray *sortedPredictions = [rawPredictions sortedArrayUsingComparator:^NSComparisonResult(NATPrediction *obj1, NATPrediction *obj2) {
-        return obj1.score < obj2.score;
-    }];
-    
-    return [sortedPredictions firstObject];
-}
-
-- (NSArray *)inflateClassifications:(MLMultiArray *)classificationResult {
-    NSArray *rawPredictions = [self predictionsFromClassifications:classificationResult];
-    // descending sort
-    NSArray *sortedPredictions = [rawPredictions sortedArrayUsingComparator:^NSComparisonResult(NATPrediction *obj1, NATPrediction *obj2) {
-        return obj1.score < obj2.score;
-    }];
-    
-    // convert the top 10 to dictionary format
-    NSMutableArray *top10 = [NSMutableArray arrayWithCapacity:10];
-    for (int i = 0; i < 10; i++) {
-        NATPrediction *prediction = sortedPredictions[i];
-        [top10 addObject:[prediction asDict]];
-    }
-    return [NSArray arrayWithArray:top10];
-}
-
-- (NSArray *)predictionsFromClassifications:(MLMultiArray *)classificationResult {
-    NSMutableArray *predictions = [NSMutableArray array];
-    for (NSInteger i = 0; i < classificationResult.count; i++) {
-        NSNumber *leafId = @(i);
-        float score = [[classificationResult objectAtIndexedSubscript:i] floatValue];
-        NATNode *node = self.nodesByLeafId[leafId];
-        NSAssert(node, @"expected node for leaf id %@ in classification output", leafId);
-        [predictions addObject:[[NATPrediction alloc] initWithNode:node score:score]];
-    }
-    return [NSArray arrayWithArray:predictions];
-}
-
 - (NATPrediction *)inflateTopPredictionFromClassification:(MLMultiArray *)classification confidenceThreshold:(float)threshold {
     NSDictionary *scores = [self aggregateScores:classification];
     NSArray *bestBranch = [self buildBestBranchFromScores:scores];
+    
+    self.latestBestBranch = bestBranch;
     
     for (NATPrediction *prediction in [bestBranch reverseObjectEnumerator]) {
         if (prediction.score > threshold) {
@@ -158,20 +122,6 @@
     }
     
     return nil;
-}
-
-- (NSArray *)inflateTopBranchFromClassification:(MLMultiArray *)classification confidenceThreshold:(float)threshold {
-    NSDictionary *scores = [self aggregateScores:classification];
-    NSArray *bestBranch = [self buildBestBranchFromScores:scores];
-    
-    NSMutableArray *trimmedBestBranch = [NSMutableArray array];
-    for (NATPrediction *prediction in bestBranch) {
-        if (prediction.score > threshold) {
-            [trimmedBestBranch addObject:prediction];
-        }
-    }
-    
-    return [NSArray arrayWithArray:trimmedBestBranch];
 }
 
 - (NSDictionary *)aggregateScores:(MLMultiArray *)classification {

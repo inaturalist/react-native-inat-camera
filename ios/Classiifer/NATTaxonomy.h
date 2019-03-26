@@ -12,8 +12,10 @@
 @class NATPrediction;
 
 @interface NATTaxonomy : NSObject
+
+@property NSArray *latestBestBranch;
+
 - (instancetype)initWithTaxonomyFile:(NSString *)taxaFile;
 - (NATPrediction *)inflateTopPredictionFromClassification:(MLMultiArray *)classification confidenceThreshold:(float)threshold;
-- (NSArray *)inflateTopBranchFromClassification:(MLMultiArray *)classification confidenceThreshold:(float)threshold;
 
 @end
