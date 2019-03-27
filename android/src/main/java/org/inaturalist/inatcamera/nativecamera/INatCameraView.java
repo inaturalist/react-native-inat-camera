@@ -179,7 +179,13 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
 
             WritableMap result = Arguments.createMap();
             result.putString("uri", path);
-            result.putMap("predictions", predictionsToMap(predictions));
+
+            WritableArray results = Arguments.createArray();
+            for (Prediction prediction : predictions) {
+                results.pushMap(nodeToMap(prediction));
+            }
+
+            result.putArray("predictions", results);
 
             promise.resolve(result);
         } catch (Exception exc) {
@@ -305,22 +311,19 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     private WritableMap predictionsToMap(Collection<Prediction> predictions) {
         WritableMap event = Arguments.createMap();
 
-        Map<Integer, WritableArray> ranks = new HashMap<>();
+        Map<Integer, WritableMap> ranks = new HashMap<>();
 
         for (Prediction prediction : predictions) {
             WritableMap result = nodeToMap(prediction);
 
-            if (!ranks.containsKey(prediction.node.rank)) {
-                ranks.put(prediction.node.rank, Arguments.createArray());
-            }
-
-            ranks.get(prediction.node.rank).pushMap(result);
+            // Assume one result per rank
+            ranks.put(prediction.node.rank, result);
         }
 
         // Convert from rank level to rank name
         for (Integer rank : RANK_LEVEL_TO_NAME.keySet()) {
             if (ranks.containsKey(rank)) {
-                event.putArray(RANK_LEVEL_TO_NAME.get(rank), ranks.get(rank));
+                event.putMap(RANK_LEVEL_TO_NAME.get(rank), ranks.get(rank));
             }
         }
 
