@@ -153,12 +153,19 @@ public class Taxonomy {
         // Work from the bottom up
         for (List<Node> rankNodes : ranks) {
             for (Node node : rankNodes) {
-                float aggregateScore = 0.0f;
-                for (Node child : node.children) {
-                    float childScore = scores.get(child.key);
-                    aggregateScore += childScore;
+                if ((node.leafId != null) && (node.leafId.length() > 0)) {
+                    // This is a leaf node, take its score from the classification output
+                    float score = results[Integer.valueOf(node.leafId)];
+                    scores.put(node.key, score);
+                } else {
+                    // This is not a leaf node, so its score is the aggregate of all its children's scores
+                    float aggregateScore = 0.0f;
+                    for (Node child : node.children) {
+                        float childScore = scores.get(child.key);
+                        aggregateScore += childScore;
+                    }
+                    scores.put(node.key, aggregateScore);
                 }
-                scores.put(node.key, aggregateScore);
             }
         }
 
