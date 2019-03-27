@@ -32,7 +32,9 @@
 
 - (void)setConfidenceThreshold:(float)confidenceThreshold {
     _confidenceThreshold = confidenceThreshold;
-    [self.classifier setThreshold:_confidenceThreshold];
+    if (self.classifier) {
+        [self.classifier setThreshold:_confidenceThreshold];
+    }
 }
 
 - (float)confidenceThreshold {
@@ -41,15 +43,19 @@
 
 - (instancetype)initWithModelFile:(NSString *)modelFile taxonomyFile:(NSString *)taxonomyFile {
     if (self = [super initWithFrame:CGRectZero]) {
-        self.classifier = [[NATClassifier alloc] initWithModelFile:modelFile
-                                                       taxonmyFile:taxonomyFile];
-        self.classifier.delegate = self;
         
-        // default detection interval is 1000 ms
-        self.taxaDetectionInterval = 1000;
-        
-        // start predicting right away
-        self.lastPredictionTime = [NSDate distantPast];
+        // classifier requires coreml, ios 11
+        if (@available(iOS 11.0, *)) {
+            self.classifier = [[NATClassifier alloc] initWithModelFile:modelFile
+                                                           taxonmyFile:taxonomyFile];
+            self.classifier.delegate = self;
+            
+            // default detection interval is 1000 ms
+            self.taxaDetectionInterval = 1000;
+            
+            // start predicting right away
+            self.lastPredictionTime = [NSDate distantPast];
+        }
         
         [self setupAVCApture];
     }
@@ -107,41 +113,44 @@
                                              AVVideoCodecKey : AVVideoCodecJPEG
                                              };
     [self.stillImageOutput setHighResolutionStillImageOutputEnabled:YES];
-
-    // add and configure the video output
-    self.videoDataOutput = [[AVCaptureVideoDataOutput alloc] init];
-    if (![self.session canAddOutput:self.videoDataOutput]) {
-        NSLog(@"couldn't add video data output to the session.");
-        [self.session commitConfiguration];
-        return;
+    
+    // classifier requires coreml, ios 11
+    if (@available(iOS 11.0, *)) {
+        // add and configure the video output
+        self.videoDataOutput = [[AVCaptureVideoDataOutput alloc] init];
+        if (![self.session canAddOutput:self.videoDataOutput]) {
+            NSLog(@"couldn't add video data output to the session.");
+            [self.session commitConfiguration];
+            return;
+        }
+        [self.session addOutput:self.videoDataOutput];
+        self.videoDataOutput.alwaysDiscardsLateVideoFrames = YES;
+        self.videoDataOutput.videoSettings = @{
+                                               (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange),
+                                               };
+        
+        // attach the video output to a dispatch queue for processing
+        dispatch_queue_attr_t qos = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, -1);
+        self.videoDataOutputQueue = dispatch_queue_create("VideoDataOutput", qos);
+        
+        [self.videoDataOutput setSampleBufferDelegate:self
+                                                queue:self.videoDataOutputQueue];
+        
+        AVCaptureConnection *captureConnection = [self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo];
+        [captureConnection setEnabled:YES];
+        
+        // extract the size of the video feed
+        NSError *configurationError = nil;
+        [discovery.devices.firstObject lockForConfiguration:&configurationError];
+        if (configurationError) {
+            NSLog(@"error locking video device for configuration: %@", configurationError.localizedFailureReason);
+            return;
+        }
+        CMFormatDescriptionRef videoFormatDesc = [[discovery.devices.firstObject activeFormat] formatDescription];
+        CMVideoDimensions videoDimensions = CMVideoFormatDescriptionGetDimensions(videoFormatDesc);
+        self.bufferSize = CGSizeMake(videoDimensions.width, videoDimensions.height);
+        [discovery.devices.firstObject unlockForConfiguration];
     }
-    [self.session addOutput:self.videoDataOutput];
-    self.videoDataOutput.alwaysDiscardsLateVideoFrames = YES;
-    self.videoDataOutput.videoSettings = @{
-                                           (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange),
-                                           };
-    
-    // attach the video output to a dispatch queue for processing
-    dispatch_queue_attr_t qos = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, -1);
-    self.videoDataOutputQueue = dispatch_queue_create("VideoDataOutput", qos);
-    
-    [self.videoDataOutput setSampleBufferDelegate:self
-                                            queue:self.videoDataOutputQueue];
-    
-    AVCaptureConnection *captureConnection = [self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo];
-    [captureConnection setEnabled:YES];
-    
-    // extract the size of the video feed
-    NSError *configurationError = nil;
-    [discovery.devices.firstObject lockForConfiguration:&configurationError];
-    if (configurationError) {
-        NSLog(@"error locking video device for configuration: %@", configurationError.localizedFailureReason);
-        return;
-    }
-    CMFormatDescriptionRef videoFormatDesc = [[discovery.devices.firstObject activeFormat] formatDescription];
-    CMVideoDimensions videoDimensions = CMVideoFormatDescriptionGetDimensions(videoFormatDesc);
-    self.bufferSize = CGSizeMake(videoDimensions.width, videoDimensions.height);
-    [discovery.devices.firstObject unlockForConfiguration];
     
     [self.session commitConfiguration];
     self.previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:self.session];
@@ -214,11 +223,13 @@
             }
             
             NSString *imageUrlString = [[NSURL fileURLWithPath:imagePath] absoluteString];
-            NSDictionary *responseDict = @{
-                                           @"uri": imageUrlString,
-                                           @"predictions": [self.classifier latestBestBranch],
-                                           };
-            resolver(responseDict);
+            
+            NSMutableDictionary *responseDict = [NSMutableDictionary dictionary];
+            responseDict[@"uri"] = imageUrlString;
+            if (self.classifier) {
+                responseDict[@"predictions"] = [self.classifier latestBestBranch];
+            }
+            resolver([NSDictionary dictionaryWithDictionary:responseDict]);
         }
     }];
 }
@@ -341,8 +352,10 @@
             return;
         }
         
-        [self.classifier classifyFrame:pixelBuffer
-                           orientation: [self exifOrientationFromDeviceOrientation]];
+        if (self.classifier) {
+            [self.classifier classifyFrame:pixelBuffer
+                               orientation: [self exifOrientationFromDeviceOrientation]];
+        }
     }
 }
 
