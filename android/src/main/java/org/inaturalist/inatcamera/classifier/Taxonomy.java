@@ -110,7 +110,7 @@ public class Taxonomy {
         Node node = new Node();
         node.key = "48460";
         node.rank = 100;
-        node.classId = "";
+        node.classId = "0";
         node.name = "Life";
         node.parent = null;
         return node;

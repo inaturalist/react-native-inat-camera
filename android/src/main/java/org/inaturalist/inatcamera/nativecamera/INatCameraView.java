@@ -281,10 +281,11 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     private WritableMap nodeToMap(Prediction prediction) {
         WritableMap result = Arguments.createMap();
 
-        result.putInt("id", Integer.valueOf(prediction.node.key));
+        result.putInt("taxon_id", Integer.valueOf(prediction.node.key));
         result.putString("name", prediction.node.name);
         result.putDouble("score", prediction.probability);
         result.putInt("rank", prediction.node.rank);
+        result.putInt("class_id", Integer.valueOf(prediction.node.classId));
 
         // Create the ancestors list for the result
         List<Integer> ancestorsList = new ArrayList<>();
@@ -311,19 +312,21 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     private WritableMap predictionsToMap(Collection<Prediction> predictions) {
         WritableMap event = Arguments.createMap();
 
-        Map<Integer, WritableMap> ranks = new HashMap<>();
+        Map<Integer, WritableArray> ranks = new HashMap<>();
 
         for (Prediction prediction : predictions) {
             WritableMap result = nodeToMap(prediction);
+            if (!ranks.containsKey(prediction.node.rank)) {
+                ranks.put(prediction.node.rank, Arguments.createArray());
+            }
 
-            // Assume one result per rank
-            ranks.put(prediction.node.rank, result);
+            ranks.get(prediction.node.rank).pushMap(result);
         }
 
         // Convert from rank level to rank name
         for (Integer rank : RANK_LEVEL_TO_NAME.keySet()) {
             if (ranks.containsKey(rank)) {
-                event.putMap(RANK_LEVEL_TO_NAME.get(rank), ranks.get(rank));
+                event.putArray(RANK_LEVEL_TO_NAME.get(rank), ranks.get(rank));
             }
         }
 
