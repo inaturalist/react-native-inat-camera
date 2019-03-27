@@ -31,5 +31,6 @@
 
 - (void)takePictureWithResolver:(RCTPromiseResolveBlock)resolver
                        rejecter:(RCTPromiseRejectBlock)reject;
+- (void)resumePreview;
 
 @end

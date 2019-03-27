@@ -35,6 +35,14 @@ RCT_REMAP_METHOD(takePictureAsync,
     }
 }
 
+RCT_REMAP_METHOD(resumePreview,
+                 resumePreviewWithHandle:(NSInteger)handle)
+{
+    if (self.cameraView) {
+        [self.cameraView resumePreview];
+    }
+}
+
 - (UIView *)view
 {
     NSBundle *bundle = [NSBundle mainBundle];

@@ -194,6 +194,9 @@
         if (error) {
             reject(@"capture_error", @"There was a capture error", error);
         } else {
+            // pause capture
+            [[self.previewLayer connection] setEnabled:NO];
+
             NSData *takenImageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageSampleBuffer];
             UIImage *takenImage = [UIImage imageWithData:takenImageData];
             UIImage *fixedImage = [self fixedOrientation:takenImage];
@@ -217,6 +220,10 @@
             resolver(responseDict);
         }
     }];
+}
+
+- (void)resumePreview {
+    [[self.previewLayer connection] setEnabled:YES];
 }
 
 /* from https://gist.github.com/schickling/b5d86cb070130f80bb40 */
