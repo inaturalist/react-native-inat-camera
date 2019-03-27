@@ -79,6 +79,8 @@ RCT_REMAP_METHOD(takePictureAsync,
         return @"phylum";
     } else if (rankLevel == 70) {
         return @"kingdom";
+    } else if (rankLevel == 100) {
+        return @"stateofmatter";
     } else {
         return @"";
     }
