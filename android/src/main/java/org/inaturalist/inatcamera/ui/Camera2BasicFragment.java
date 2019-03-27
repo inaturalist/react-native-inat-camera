@@ -85,6 +85,8 @@ public class Camera2BasicFragment extends Fragment
     private String mTaxonomyFilename;
     private boolean mDeviceSupported;
 
+    private boolean mCameraConfigured = false;
+
     private float mConfidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD;
 
     public interface CameraListener {
@@ -305,8 +307,7 @@ public class Camera2BasicFragment extends Fragment
         }
 
         try {
-            throw new IOException("AAAAA");
-            //mClassifier = new ImageClassifier(getActivity(), mModelFilename, mTaxonomyFilename);
+            mClassifier = new ImageClassifier(getActivity(), mModelFilename, mTaxonomyFilename);
         } catch (IOException e) {
             if (mCameraCallback != null) mCameraCallback.onClassifierError("Failed to initialize an image mClassifier: " + e.getMessage());
         }
@@ -618,6 +619,8 @@ public class Camera2BasicFragment extends Fragment
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
                             }
+
+                            mCameraConfigured = true;
                         }
 
                         @Override
@@ -667,7 +670,7 @@ public class Camera2BasicFragment extends Fragment
 
     /** Classifies a frame from the preview stream. */
     private void classifyFrame() {
-        if ((mClassifier == null) || (getActivity() == null) || (cameraDevice == null)) {
+        if ((mClassifier == null) || (getActivity() == null) || (cameraDevice == null) || (!mCameraConfigured)) {
             return;
         }
         Bitmap bitmap = textureView.getBitmap(ImageClassifier.DIM_IMG_SIZE_X, ImageClassifier.DIM_IMG_SIZE_Y);
