@@ -67,8 +67,10 @@ public class Camera2BasicFragment extends Fragment
 
     // Reasons why the device is not supported
     private static final int REASON_DEVICE_SUPPORTED = 0;
-    private static final int REASON_OS_TOO_OLD = 1;
-    // TODO: Add more reasons (e.g. graphic card, memory, ...)
+    private static final int REASON_DEVICE_NOT_SUPPORTED = 1;
+    private static final int REASON_OS_TOO_OLD = 2;
+    private static final int REASON_NOT_ENOUGH_MEMORY = 3;
+    // TODO: Add more reasons (e.g. graphic card, ...)
 
     private final Object lock = new Object();
     private boolean mRunClassifier = false;
@@ -310,7 +312,18 @@ public class Camera2BasicFragment extends Fragment
             mClassifier = new ImageClassifier(getActivity(), mModelFilename, mTaxonomyFilename);
         } catch (IOException e) {
             if (mCameraCallback != null) mCameraCallback.onClassifierError("Failed to initialize an image mClassifier: " + e.getMessage());
+        } catch (OutOfMemoryError e) {
+            e.printStackTrace();
+            Log.w(TAG, "Out of memory - Device not supported - classifier failed to load - " + e);
+            if (mCameraCallback != null) mCameraCallback.onDeviceNotSupported(deviceNotSupportedReasonToString(REASON_NOT_ENOUGH_MEMORY));
+            return;
+        } catch (Exception e) {
+            e.printStackTrace();
+            Log.w(TAG, "Other type of exception - Device not supported - classifier failed to load - " + e);
+            if (mCameraCallback != null) mCameraCallback.onDeviceNotSupported(deviceNotSupportedReasonToString(REASON_DEVICE_NOT_SUPPORTED));
+            return;
         }
+
         startBackgroundThread();
     }
 
@@ -326,8 +339,12 @@ public class Camera2BasicFragment extends Fragment
 
     private String deviceNotSupportedReasonToString(int reason) {
         switch (reason) {
+            case REASON_DEVICE_NOT_SUPPORTED:
+                return "Device is too old";
             case REASON_OS_TOO_OLD:
                 return "Android version is too old - needs to be at least 6.0";
+            case REASON_NOT_ENOUGH_MEMORY:
+                return "Not enough memory";
         }
 
         return null;
