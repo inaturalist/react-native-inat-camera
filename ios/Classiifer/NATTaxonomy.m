@@ -142,15 +142,22 @@
     // work from the bottom up
     for (NSArray *rankNodes in ranks) {
         for (NATNode *node in rankNodes) {
-            float aggregateScore = 0.0f;
-            for (NATNode *child in node.children) {
-                float childScore = [scores[child.taxonId] floatValue];
-                aggregateScore += childScore;
+            if (node.leafId) {
+                // this is a leaf node, take its score from the classification output
+                NSNumber *score = [classification objectAtIndexedSubscript:node.leafId.integerValue];
+                scores[node.taxonId] = score;
+            } else {
+                // this is not a leaf node, so its score is the aggregate of all its children's scores
+                float aggregateScore = 0.0f;
+                for (NATNode *child in node.children) {
+                    float childScore = [scores[child.taxonId] floatValue];
+                    aggregateScore += childScore;
+                }
+                scores[node.taxonId] = @(aggregateScore);
             }
-            scores[node.taxonId] = @(aggregateScore);
         }
     }
-    
+
     return scores;
 }
 
