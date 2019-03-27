@@ -152,8 +152,9 @@
     [self startCaptureSession];
 }
 
+
+
 - (void)layoutSubviews {
-    NSLog(@"need to update subviews");
     self.previewLayer.frame = self.bounds;
 }
 
