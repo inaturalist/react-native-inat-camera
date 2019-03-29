@@ -17,6 +17,11 @@
 
 RCT_EXPORT_MODULE()
 RCT_EXPORT_VIEW_PROPERTY(onTaxaDetected, RCTBubblingEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onCameraError, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onCameraPermissionMissing, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onClassifierError, RCTDirectEventBlock)
+RCT_EXPORT_VIEW_PROPERTY(onDeviceNotSupported, RCTDirectEventBlock)
+
 RCT_EXPORT_VIEW_PROPERTY(confidenceThreshold, float)
 RCT_EXPORT_VIEW_PROPERTY(taxaDetectionInterval, NSInteger)
 
@@ -49,12 +54,16 @@ RCT_REMAP_METHOD(resumePreview,
     NSString *modelPath = [bundle pathForResource:@"optimized_model" ofType:@".mlmodelc"];
     NSString *taxonomyPath = [bundle pathForResource:@"taxonomy" ofType:@".json"];
     
-    NATCameraView *camera = [[NATCameraView alloc] initWithModelFile:modelPath
-                                                        taxonomyFile:taxonomyPath];
-    self.cameraView = camera;
+    NATCameraView *cameraView = [[NATCameraView alloc] initWithModelFile:modelPath
+                                                            taxonomyFile:taxonomyPath
+                                                                delegate:self];
+    self.cameraView = cameraView;
 
-    camera.delegate = self;
-    return camera;
+    [cameraView setupClassifier];
+    [cameraView setupAVCapture];
+    
+    
+    return cameraView;
 }
 
 #pragma mark NATCameraDelegate
@@ -71,6 +80,36 @@ RCT_REMAP_METHOD(resumePreview,
                                 rank: taxa
                                 });
 }
+
+- (void)cameraView:(NATCameraView *)cameraView cameraError:(NSString *)errorString {
+    if (!cameraView.onCameraError) {
+        return;
+    }
+    
+    cameraView.onCameraError(@{
+                               @"error": errorString,
+                               });
+}
+
+- (void)cameraViewDeviceNotSupported:(NATCameraView *)cameraView {
+    if (!cameraView.onDeviceNotSupported) {
+        return;
+    }
+    
+    cameraView.onDeviceNotSupported(@{ });
+}
+
+- (void)cameraView:(NATCameraView *)cameraView onClassifierError:(NSString *)errorString {
+    if (!cameraView.onClassifierError) {
+        return;
+    }
+    
+    cameraView.onClassifierError(@{
+                                   @"error": errorString,
+                                   });
+}
+
+#pragma mark Helper
 
 - (NSString *)rankNameForRankLevel:(NSInteger)rankLevel {
     if (rankLevel == 10) {

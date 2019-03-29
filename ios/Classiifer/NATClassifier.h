@@ -11,6 +11,7 @@
 
 @protocol NATClassifierDelegate <NSObject>
 - (void)topClassificationResult:(NSDictionary *)topPrediction;
+- (void)classifierError:(NSString *)errorString;
 @end
 
 typedef void(^BranchClassificationHandler)(NSArray *topBranch, NSError *error);
