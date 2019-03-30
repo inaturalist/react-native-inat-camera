@@ -91,6 +91,8 @@ public class Camera2BasicFragment extends Fragment
 
     private float mConfidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD;
 
+    private int mSensorOrientation = 0;
+
     public interface CameraListener {
         void onCameraError(String error);
         void onCameraPermissionMissing();
@@ -442,6 +444,8 @@ public class Camera2BasicFragment extends Fragment
                         Log.e(TAG, "Display rotation is invalid: " + displayRotation);
                 }
 
+                mSensorOrientation = sensorOrientation;
+
                 Point displaySize = new Point();
                 activity.getWindowManager().getDefaultDisplay().getSize(displaySize);
                 int rotatedPreviewWidth = width;
@@ -712,6 +716,10 @@ public class Camera2BasicFragment extends Fragment
         }
 
         if (mCameraCallback != null) mCameraCallback.onTaxaDetected(selectedPrediction);
+    }
+
+    public int getSensorOrientation() {
+        return mSensorOrientation;
     }
 
     /** Takes a picture */

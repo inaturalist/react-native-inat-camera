@@ -1,12 +1,16 @@
 package org.inaturalist.inatcamera.nativecamera;
 
+import android.view.WindowManager;
+import android.util.SparseIntArray;
+import android.view.Surface;
+import android.content.res.Configuration;
 import android.os.Environment;
 import java.text.SimpleDateFormat;
 import java.io.File;
 import java.io.FileOutputStream;
 import android.graphics.Bitmap;
 import java.util.Calendar;
-
+import android.support.media.ExifInterface;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -36,6 +40,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Arrays;  
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
+import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
+import android.location.Location;
+import android.location.LocationManager;
+import android.os.Bundle;
+import android.location.Criteria;
+import com.google.android.gms.common.ConnectionResult;
+ 
+
 public class INatCameraView extends FrameLayout implements Camera2BasicFragment.CameraListener {
     private static final String TAG = "INatCameraView";
 
@@ -48,6 +64,8 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     public static final String EVENT_NAME_ON_DEVICE_NOT_SUPPORTED = "onDeviceNotSupported";
 
     private static final int DEFAULT_TAXON_DETECTION_INTERVAL = 1000;
+
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
     private static final Map<Integer, String> RANK_LEVEL_TO_NAME;
     static {
@@ -82,7 +100,15 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
         map.put(5, "subspecies");
 
         RANK_LEVEL_TO_NAME = Collections.unmodifiableMap(map);
+
+
+        ORIENTATIONS.append(Surface.ROTATION_0, 0);
+        ORIENTATIONS.append(Surface.ROTATION_90, 270);
+        ORIENTATIONS.append(Surface.ROTATION_180, 90);
+        ORIENTATIONS.append(Surface.ROTATION_270, 180);
     }
+
+    private GoogleApiClient mLocationClient;
 
     private Camera2BasicFragment mCameraFragment;
 
@@ -127,6 +153,9 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
 
         mCameraFragment = new Camera2BasicFragment();
         mCameraFragment.setOnCameraErrorListener(this);
+
+        // Initialize location client
+        getLocation();
     }
 
     public void setConfidenceThreshold(float confidence) {
@@ -150,6 +179,108 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     public void resumePreview() {
         mCameraFragment.resumePreview();
     }
+
+    private Location getLocationFromGPS() {
+        Log.d(TAG, "getLocationFromGPS");
+
+        LocationManager locationManager = (LocationManager) reactContext.getSystemService(Context.LOCATION_SERVICE);
+        Criteria criteria = new Criteria();
+        String provider = locationManager.getBestProvider(criteria, false);
+        if (provider == null) return null;
+
+        Location location = locationManager.getLastKnownLocation(provider);
+        Log.d(TAG, "getLocationFromGPS: " + location);
+
+        return location;
+    }
+
+    private Location getLastKnownLocationFromClient() {
+        Location location = null;
+
+        Log.d(TAG, "getLastKnownLocationFromClient");
+
+        try {
+            location = LocationServices.FusedLocationApi.getLastLocation(mLocationClient);
+        } catch (IllegalStateException ex) {
+            ex.printStackTrace();
+        }
+
+        Log.d(TAG, "getLastKnownLocationFromClient: " + location);
+        if (location == null) {
+            // Failed - try and return last place using GPS
+            return getLocationFromGPS();
+        } else {
+            return location;
+        }
+    }
+
+    private Location getLocation() {
+        int resultCode = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(reactContext);
+        
+        Log.d(TAG, "getLocation: isAvailable = " + resultCode);
+
+
+        if (resultCode == ConnectionResult.SUCCESS) {
+            Log.d(TAG, "getLocation: Connected already");
+            // User Google Play services if available
+            if ((mLocationClient != null) && (mLocationClient.isConnected())) {
+                // Location client already initialized and connected - use it
+                return getLastKnownLocationFromClient();
+            } else {
+                // Connect to the place services
+                Log.d(TAG, "getLocation: Connecting to client");
+                mLocationClient = new GoogleApiClient.Builder(reactContext)
+                        .addApi(LocationServices.API)
+                        .addConnectionCallbacks(new ConnectionCallbacks() {
+                            @Override
+                            public void onConnected(Bundle bundle) {
+                                // Connected successfully
+                                Log.d(TAG, "getLocation: Connected");
+                            }
+
+                            @Override
+                            public void onConnectionSuspended(int i) { }
+                        })
+                        .addOnConnectionFailedListener(new OnConnectionFailedListener() {
+                            @Override
+                            public void onConnectionFailed(ConnectionResult connectionResult) {
+                                Log.d(TAG, "getLocation: Connection failed");
+                                mLocationClient.disconnect();
+                            }
+                        })
+                        .build();
+                mLocationClient.connect();
+
+                return null;
+            }
+
+        } else {
+            Log.d(TAG, "getLocation: Getting from GPS");
+            // Use GPS alone for place
+            return getLocationFromGPS();
+        }
+    }
+
+
+    /**
+     * Retrieves the JPEG orientation from the specified screen rotation.
+     * Taken from: https://github.com/googlesamples/android-Camera2Basic/blob/master/Application/src/main/java/com/example/android/camera2basic/Camera2BasicFragment.java
+     *
+     * @return The JPEG orientation (one of 0, 90, 270, and 360)
+     */
+    private int getOrientation() {
+        // Sensor orientation is 90 for most devices, or 270 for some devices (eg. Nexus 5X)
+        // We have to take that into account and rotate JPEG properly.
+        // For devices with orientation of 90, we simply return our mapping from ORIENTATIONS.
+        // For devices with orientation of 270, we need to rotate the JPEG 180 degrees.
+        WindowManager windowManager = (WindowManager) reactContext.getSystemService(Context.WINDOW_SERVICE);
+        int rotation = windowManager.getDefaultDisplay().getRotation();
+        int sensorOrientation = mCameraFragment.getSensorOrientation();
+
+        Log.d(TAG, "getOrientation: " + rotation + ":" + sensorOrientation + ":" + ORIENTATIONS.get(rotation));
+
+        return (ORIENTATIONS.get(rotation) + sensorOrientation + 270) % 360;
+    }
     
     public void takePictureAsync(ReadableMap options, Promise promise) {
         Bitmap bitmap = mCameraFragment.takePicture();
@@ -170,6 +301,55 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fileOutputStream);
             fileOutputStream.flush();
             fileOutputStream.close();
+
+
+            // Set EXIF data for the photo
+
+            ExifInterface exif = new ExifInterface(path);
+
+
+            // Orientation
+
+            int orientation = getOrientation();
+
+            Log.d(TAG, "takePicture - orientation: " + orientation);
+
+            switch (orientation) {
+                case 0:
+                    exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_NORMAL));
+                    break;
+                case 90:
+                    exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_ROTATE_90));
+                    break;
+                case 180:
+                    exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_ROTATE_180));
+                    break;
+                case 270:
+                    exif.setAttribute(ExifInterface.TAG_ORIENTATION, String.valueOf(ExifInterface.ORIENTATION_ROTATE_270));
+                    break;
+            }
+
+
+            // Location
+            
+            Location location = getLocation();
+
+            Log.d(TAG, "takePicture - location: " + location);
+
+            if (location != null) {
+                double latitude = location.getLatitude();
+                double longitude = location.getLongitude();
+
+                Log.d(TAG, "takePicture - saving location: " + latitude + "/" + longitude + " ==> " + GPSEncoder.convert(latitude) + " and " + GPSEncoder.convert(longitude));
+
+                exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE, GPSEncoder.convert(latitude));
+                exif.setAttribute(ExifInterface.TAG_GPS_LATITUDE_REF, GPSEncoder.latitudeRef(latitude));
+                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, GPSEncoder.convert(longitude));
+                exif.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, GPSEncoder.longitudeRef(longitude));
+            }
+
+            exif.saveAttributes();
+           
 
             // Get predictions for that image
             List<Prediction> predictions = mCameraFragment.getPredictionsForImage(bitmap);
