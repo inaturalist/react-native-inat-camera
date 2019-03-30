@@ -47,19 +47,39 @@
 
 - (void)setupVision {
     NSURL *modelUrl = [NSURL fileURLWithPath:self.modelPath];
-    NSAssert(modelUrl, @"no url for optimized model");
+    if (!modelUrl) {
+        [self.delegate classifierError:@"no file for optimized model"];
+        return;
+    }
     
     NSError *loadError = nil;
     MLModel *model = [MLModel modelWithContentsOfURL:modelUrl
                                                error:&loadError];
-    NSAssert(loadError == nil, @"error loading model: %@", loadError.localizedDescription);
-    NSAssert(model, @"unable to make model");
+    if (loadError) {
+        NSString *errString = [NSString stringWithFormat:@"error loading model: %@",
+                               loadError.localizedDescription];
+        [self.delegate classifierError:errString];
+        return;
+    }
+    if (!model) {
+        [self.delegate classifierError:@"unable to make model"];
+        return;
+
+    }
     
     NSError *modelError = nil;
     VNCoreMLModel *visionModel = [VNCoreMLModel modelForMLModel:model
                                                           error:&modelError];
-    NSAssert(modelError == nil, @"error making vision model: %@", modelError.localizedDescription);
-    NSAssert(visionModel, @"unable to make vision model");
+    if (modelError) {
+        NSString *errString = [NSString stringWithFormat:@"error making vision model: %@",
+                               modelError.localizedDescription];
+        [self.delegate classifierError:errString];
+        return;
+    }
+    if (!visionModel) {
+        [self.delegate classifierError:@"unable to make vision model"];
+        return;
+    }
     self.visionModel = visionModel;
     
     
@@ -72,9 +92,6 @@
         MLMultiArray *mm = firstFV.multiArrayValue;
         NATPrediction *topPrediction = [self.taxonomy inflateTopPredictionFromClassification:mm
                                                                          confidenceThreshold:self.threshold];
-        
-        NSLog(@"threshold is %f, score is %f", self.threshold, topPrediction.score);
-        
         [self.delegate topClassificationResult:[topPrediction asDict]];
     };
     
@@ -91,7 +108,11 @@
     NSError *requestError = nil;
     [handler performRequests:self.requests
                        error:&requestError];
-    NSAssert(requestError == nil, @"got a request error: %@", requestError.localizedDescription);
+    if (requestError) {
+        NSString *errString = [NSString stringWithFormat:@"got a request error: %@",
+                               requestError.localizedDescription];
+        [self.delegate classifierError:errString];
+    }
 }
 
 @end

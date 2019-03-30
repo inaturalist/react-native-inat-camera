@@ -26,23 +26,40 @@
 @property NSDictionary *leafTaxa;
 @property NATClassifier *classifier;
 @property NSDate *lastPredictionTime;
+
+@property NSString *modelFile;
+@property NSString *taxonomyFile;
 @end
 
 @implementation NATCameraView
 
 - (void)setConfidenceThreshold:(float)confidenceThreshold {
     _confidenceThreshold = confidenceThreshold;
-    [self.classifier setThreshold:_confidenceThreshold];
+    if (self.classifier) {
+        [self.classifier setThreshold:_confidenceThreshold];
+    }
 }
 
 - (float)confidenceThreshold {
     return _confidenceThreshold;
 }
 
-- (instancetype)initWithModelFile:(NSString *)modelFile taxonomyFile:(NSString *)taxonomyFile {
+
+- (instancetype)initWithModelFile:(NSString *)modelFile taxonomyFile:(NSString *)taxonomyFile delegate:(id<NATCameraDelegate>)delegate {
     if (self = [super initWithFrame:CGRectZero]) {
-        self.classifier = [[NATClassifier alloc] initWithModelFile:modelFile
-                                                       taxonmyFile:taxonomyFile];
+        self.modelFile = modelFile;
+        self.taxonomyFile = taxonomyFile;
+        self.delegate = delegate;
+    }
+    
+    return self;
+}
+
+- (void)setupClassifier {
+    // classifier requires coreml, ios 11
+    if (@available(iOS 11.0, *)) {
+        self.classifier = [[NATClassifier alloc] initWithModelFile:self.modelFile
+                                                       taxonmyFile:self.taxonomyFile];
         self.classifier.delegate = self;
         
         // default detection interval is 1000 ms
@@ -50,21 +67,24 @@
         
         // start predicting right away
         self.lastPredictionTime = [NSDate distantPast];
-        
-        [self setupAVCApture];
+    } else {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self.delegate cameraViewDeviceNotSupported:self];
+        });
     }
-    
-    return self;
 }
 
-- (void)setupAVCApture {
+- (void)setupAVCapture {
     // discover the camera
     NSArray *deviceTypes = @[AVCaptureDeviceTypeBuiltInWideAngleCamera];
     AVCaptureDeviceDiscoverySession *discovery = [AVCaptureDeviceDiscoverySession discoverySessionWithDeviceTypes:deviceTypes
                                                                                                         mediaType:AVMediaTypeVideo
                                                                                                          position:AVCaptureDevicePositionBack];
     if (!discovery || discovery.devices.count < 1) {
-        NSLog(@"no devices available");
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self.delegate cameraView:self
+                          cameraError:@"No Camera Found"];
+        });
         return;
     }
     
@@ -73,11 +93,20 @@
     AVCaptureDeviceInput *input = [[AVCaptureDeviceInput alloc] initWithDevice:discovery.devices.firstObject
                                                                          error:&captureDeviceSetupError];
     if (captureDeviceSetupError) {
-        NSLog(@"couldn't get device input: %@", captureDeviceSetupError.localizedFailureReason);
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            NSString *errorString = [NSString stringWithFormat:@"Camera Input Failed: %@",
+                                     captureDeviceSetupError.localizedFailureReason];
+
+            [self.delegate cameraView:self
+                          cameraError:errorString];
+        });
         return;
     }
     if (!input) {
-        NSLog(@"capture device input failed silently");
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self.delegate cameraView:self
+                          cameraError:@"Camera Input Failed"];
+        });
         return;
     }
     
@@ -89,7 +118,10 @@
     
     // add the video input
     if (![self.session canAddInput:input]) {
-        NSLog(@"couldn't add video device input to the session.");
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self.delegate cameraView:self
+                          cameraError:@"Camera Input Device Adding Failed"];
+        });
         [self.session commitConfiguration];
         return;
     }
@@ -98,7 +130,10 @@
     // add and configure the still output for capture
     self.stillImageOutput = [[AVCaptureStillImageOutput alloc] init];
     if (![self.session canAddOutput:self.stillImageOutput]) {
-        NSLog(@"couldn't add still capture data output to the session.");
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self.delegate cameraView:self
+                          cameraError:@"Camera Still Output Device Adding Failed"];
+        });
         [self.session commitConfiguration];
         return;
     }
@@ -107,41 +142,54 @@
                                              AVVideoCodecKey : AVVideoCodecJPEG
                                              };
     [self.stillImageOutput setHighResolutionStillImageOutputEnabled:YES];
+    
+    // classifier requires coreml, ios 11
+    if (@available(iOS 11.0, *)) {
+        // add and configure the video output
+        self.videoDataOutput = [[AVCaptureVideoDataOutput alloc] init];
+        if (![self.session canAddOutput:self.videoDataOutput]) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [self.delegate cameraView:self
+                              cameraError:@"Camera Video Output Device Adding Failed"];
+            });
+            [self.session commitConfiguration];
+            return;
+        }
+        [self.session addOutput:self.videoDataOutput];
+        self.videoDataOutput.alwaysDiscardsLateVideoFrames = YES;
+        self.videoDataOutput.videoSettings = @{
+                                               (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange),
+                                               };
+        
+        // attach the video output to a dispatch queue for processing
+        dispatch_queue_attr_t qos = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, -1);
+        self.videoDataOutputQueue = dispatch_queue_create("VideoDataOutput", qos);
+        
+        [self.videoDataOutput setSampleBufferDelegate:self
+                                                queue:self.videoDataOutputQueue];
+        
+        AVCaptureConnection *captureConnection = [self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo];
+        [captureConnection setEnabled:YES];
+        
+        // extract the size of the video feed
+        NSError *configurationError = nil;
+        [discovery.devices.firstObject lockForConfiguration:&configurationError];
+        if (configurationError) {
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                NSString *errString = [NSString stringWithFormat:@"Lock Device for Config Failed: %@",
+                                       configurationError.localizedFailureReason];
 
-    // add and configure the video output
-    self.videoDataOutput = [[AVCaptureVideoDataOutput alloc] init];
-    if (![self.session canAddOutput:self.videoDataOutput]) {
-        NSLog(@"couldn't add video data output to the session.");
-        [self.session commitConfiguration];
-        return;
+                [self.delegate cameraView:self
+                              cameraError:errString];
+            });
+
+            return;
+        }
+        CMFormatDescriptionRef videoFormatDesc = [[discovery.devices.firstObject activeFormat] formatDescription];
+        CMVideoDimensions videoDimensions = CMVideoFormatDescriptionGetDimensions(videoFormatDesc);
+        self.bufferSize = CGSizeMake(videoDimensions.width, videoDimensions.height);
+        [discovery.devices.firstObject unlockForConfiguration];
     }
-    [self.session addOutput:self.videoDataOutput];
-    self.videoDataOutput.alwaysDiscardsLateVideoFrames = YES;
-    self.videoDataOutput.videoSettings = @{
-                                           (NSString *)kCVPixelBufferPixelFormatTypeKey: @(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange),
-                                           };
-    
-    // attach the video output to a dispatch queue for processing
-    dispatch_queue_attr_t qos = dispatch_queue_attr_make_with_qos_class(DISPATCH_QUEUE_SERIAL, QOS_CLASS_USER_INITIATED, -1);
-    self.videoDataOutputQueue = dispatch_queue_create("VideoDataOutput", qos);
-    
-    [self.videoDataOutput setSampleBufferDelegate:self
-                                            queue:self.videoDataOutputQueue];
-    
-    AVCaptureConnection *captureConnection = [self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo];
-    [captureConnection setEnabled:YES];
-    
-    // extract the size of the video feed
-    NSError *configurationError = nil;
-    [discovery.devices.firstObject lockForConfiguration:&configurationError];
-    if (configurationError) {
-        NSLog(@"error locking video device for configuration: %@", configurationError.localizedFailureReason);
-        return;
-    }
-    CMFormatDescriptionRef videoFormatDesc = [[discovery.devices.firstObject activeFormat] formatDescription];
-    CMVideoDimensions videoDimensions = CMVideoFormatDescriptionGetDimensions(videoFormatDesc);
-    self.bufferSize = CGSizeMake(videoDimensions.width, videoDimensions.height);
-    [discovery.devices.firstObject unlockForConfiguration];
     
     [self.session commitConfiguration];
     self.previewLayer = [[AVCaptureVideoPreviewLayer alloc] initWithSession:self.session];
@@ -152,8 +200,9 @@
     [self startCaptureSession];
 }
 
+
+
 - (void)layoutSubviews {
-    NSLog(@"need to update subviews");
     self.previewLayer.frame = self.bounds;
 }
 
@@ -194,6 +243,9 @@
         if (error) {
             reject(@"capture_error", @"There was a capture error", error);
         } else {
+            // pause capture
+            [[self.previewLayer connection] setEnabled:NO];
+
             NSData *takenImageData = [AVCaptureStillImageOutput jpegStillImageNSDataRepresentation:imageSampleBuffer];
             UIImage *takenImage = [UIImage imageWithData:takenImageData];
             UIImage *fixedImage = [self fixedOrientation:takenImage];
@@ -210,13 +262,19 @@
             }
             
             NSString *imageUrlString = [[NSURL fileURLWithPath:imagePath] absoluteString];
-            NSDictionary *responseDict = @{
-                                           @"uri": imageUrlString,
-                                           @"predictions": [self.classifier latestBestBranch],
-                                           };
-            resolver(responseDict);
+            
+            NSMutableDictionary *responseDict = [NSMutableDictionary dictionary];
+            responseDict[@"uri"] = imageUrlString;
+            if (self.classifier) {
+                responseDict[@"predictions"] = [self.classifier latestBestBranch];
+            }
+            resolver([NSDictionary dictionaryWithDictionary:responseDict]);
         }
     }];
+}
+
+- (void)resumePreview {
+    [[self.previewLayer connection] setEnabled:YES];
 }
 
 /* from https://gist.github.com/schickling/b5d86cb070130f80bb40 */
@@ -333,8 +391,10 @@
             return;
         }
         
-        [self.classifier classifyFrame:pixelBuffer
-                           orientation: [self exifOrientationFromDeviceOrientation]];
+        if (self.classifier) {
+            [self.classifier classifyFrame:pixelBuffer
+                               orientation: [self exifOrientationFromDeviceOrientation]];
+        }
     }
 }
 
@@ -342,6 +402,13 @@
 
 - (void)topClassificationResult:(NSDictionary *)topPrediction {
     [self.delegate cameraView:self taxaDetected:@[topPrediction]];
+}
+
+- (void)classifierError:(NSString *)errorString {
+    // delay this to make sure the RCT event dispatch is setup
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+        [self.delegate cameraView:self onClassifierError:errorString];
+    });
 }
 
 @end

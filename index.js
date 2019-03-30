@@ -20,10 +20,16 @@ type PictureOptions = {
 
 export default class INatCamera extends React.Component<PropsType, StateType> {
     static propTypes = {
-        taxaDetectionInterval: PropTypes.string,
+        taxaDetectionInterval: PropTypes.oneOfType([
+          PropTypes.string,
+          PropTypes.number
+        ]),
         modelPath: PropTypes.string,
         taxonomyPath: PropTypes.string,
-        confidenceThreshold: PropTypes.string,
+        confidenceThreshold: PropTypes.oneOfType([
+          PropTypes.string,
+          PropTypes.number
+        ]),
         ...ViewPropTypes,
     };
 
