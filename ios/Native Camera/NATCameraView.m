@@ -22,8 +22,6 @@
 @property AVCaptureSession *session;
 @property dispatch_queue_t  videoDataOutputQueue;
 @property CGSize bufferSize;
-@property NSArray *requests;
-@property NSDictionary *leafTaxa;
 @property NATClassifier *classifier;
 @property NSDate *lastPredictionTime;
 
@@ -52,6 +50,21 @@
     }
     
     return self;
+}
+
+- (void)dealloc {    
+    [self stopCaptureSession];
+    [self teardownAVCapture];
+    [self.classifier stopProcessing];
+    
+    self.previewLayer = nil;
+    self.session = nil;
+    self.videoDataOutput = nil;
+    self.stillImageOutput = nil;
+    self.classifier = nil;
+    self.lastPredictionTime = nil;
+    self.modelFile = nil;
+    self.taxonomyFile = nil;
 }
 
 - (void)setupClassifier {
@@ -271,7 +284,7 @@
             
             /*
              TBD: this is producing very different predictions than
-             what's coming from the frame classification
+             what's coming from the framebuffer classification
              
              [self.classifier classifyImageData:fixedImageData
                                        handler:^(NSArray *topBranch, NSError *error) {

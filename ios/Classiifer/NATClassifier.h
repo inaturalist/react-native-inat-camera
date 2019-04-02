@@ -25,7 +25,7 @@ typedef void(^BranchClassificationHandler)(NSArray *topBranch, NSError *error);
 - (instancetype)initWithModelFile:(NSString *)modelPath taxonmyFile:(NSString *)taxonomyPath;
 - (void)classifyFrame:(CVImageBufferRef)pixelBuf orientation:(CGImagePropertyOrientation)orientation;
 - (void)classifyImageData:(NSData *)data orientation:(CGImagePropertyOrientation)orientation handler:(BranchClassificationHandler)handler;
-
 - (void)classifyImageData:(NSData *)data handler:(BranchClassificationHandler)handler;
+- (void)stopProcessing;
 
 @end

@@ -27,7 +27,7 @@
 @property (nonatomic, copy) RCTDirectEventBlock onClassifierError;
 @property (nonatomic, copy) RCTDirectEventBlock onDeviceNotSupported;
 
-@property (nonatomic, assign) id <NATCameraDelegate> delegate;
+@property (nonatomic, weak) id <NATCameraDelegate> delegate;
 @property (nonatomic, assign) float confidenceThreshold;
 
 // Minimum delay between calls to the onTaxaDetected callback, in ms.

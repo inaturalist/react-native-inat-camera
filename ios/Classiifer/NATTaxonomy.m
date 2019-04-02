@@ -16,6 +16,7 @@
 @property NSDictionary *nodesByLeafId;
 @property NSMutableArray *counted;
 
+@property NATNode *life;
 @property NSMutableArray *speciesNodes;
 @property NSMutableArray *genusNodes;
 @property NSMutableArray *familyNodes;
@@ -49,6 +50,12 @@
         NSAssert(jsonError == nil, @"error getting json from %@: %@", taxaFile, jsonError.localizedDescription);
         NSAssert(taxa, @"failed to get json from %@", taxaFile);
         NSAssert(taxa.count > 0, @"failed to get list of json from %@", taxaFile);
+
+        self.life =  [[NATNode alloc] init];
+        self.life.taxonId = @(48460);
+        self.life.rank = @(100);
+        self.life.classId = @(0);
+        self.life.name = @"Life";
 
         self.speciesNodes = [NSMutableArray array];
         self.genusNodes = [NSMutableArray array];
@@ -100,13 +107,30 @@
                     [parent addChild:node];
                 }
             } else {
-                node.parent = [NATNode life];
-                [[NATNode life] addChild:node];
+                node.parent = self.life;
+                [self.life addChild:node];
             }
         }
     }
     
     return self;
+}
+
+- (void)dealloc {    
+    self.life = nil;
+    
+    self.nodes = nil;
+    self.nodesByTaxonId = nil;
+    self.nodesByLeafId = nil;
+    self.counted = nil;
+    
+    self.speciesNodes = nil;
+    self.genusNodes = nil;
+    self.familyNodes = nil;
+    self.orderNodes = nil;
+    self.classNodes = nil;
+    self.phylumNodes = nil;
+    self.kingdomNodes = nil;
 }
 
 - (NSArray *)inflateTopBranchFromClassification:(MLMultiArray *)classification {
@@ -168,7 +192,7 @@
     NSMutableArray *bestBranch = [NSMutableArray array];
 
     // start from life
-    NATNode *currentNode = [NATNode life];
+    NATNode *currentNode = self.life;
     // always life
     NATPrediction *lifePrediction = [[NATPrediction alloc] initWithNode:currentNode score:1.0f];
     [bestBranch addObject:lifePrediction];

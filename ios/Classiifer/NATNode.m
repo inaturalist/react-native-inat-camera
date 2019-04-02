@@ -65,21 +65,12 @@
                            };
     
     NSMutableDictionary *mutableDict = [dict mutableCopy];
-    /*
-    if (self.parent) {
-        mutableDict[@"parent"] = [self.parent asDict];
-    }
-    if (self.parentTaxonId) {
-        mutableDict[@"parent_taxon_id"] = self.parentTaxonId;
-    }
-     */
     if (self.leafId) {
         mutableDict[@"leaf_id"] = self.leafId;
     }
     if (self.name) {
         mutableDict[@"name"] = self.name;
     }
-
     
     return [NSDictionary dictionaryWithDictionary:mutableDict];
 }
@@ -90,19 +81,6 @@
     }
     NATNode *otherNode = (NATNode *)object;
     return otherNode.taxonId == self.taxonId;
-}
-
-+ (NATNode *)life {
-    static NATNode *_life;
-    static dispatch_once_t onceToken;
-    dispatch_once(&onceToken, ^{
-        _life = [[NATNode alloc] init];
-        _life.taxonId = @(48460);
-        _life.rank = @(100);
-        _life.classId = @(0);
-        _life.name = @"Life";
-    });
-    return _life;
 }
 
 @end

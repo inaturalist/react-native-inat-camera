@@ -17,13 +17,11 @@
 @property NSNumber *leafId;
 @property NSNumber *parentTaxonId;
 
-@property NATNode *parent;
+@property (weak) NATNode *parent;
 @property NSMutableArray <NATNode *> *children;
 
 - (instancetype)initWithDictionary:(NSDictionary *)dict;
 - (void)addChild:(NATNode *)child;
 - (NSDictionary *)asDict;
-
-+ (NATNode *)life;
 
 @end

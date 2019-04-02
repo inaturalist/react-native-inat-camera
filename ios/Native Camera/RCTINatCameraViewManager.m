@@ -6,6 +6,9 @@
 //  Copyright © 2019 California Academy of Sciences. All rights reserved.
 //
 
+#import <React/RCTBridge.h>
+#import <React/RCTUIManager.h>
+
 #import "RCTINatCameraViewManager.h"
 #import "NATCameraView.h"
 

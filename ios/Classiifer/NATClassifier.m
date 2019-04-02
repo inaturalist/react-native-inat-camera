@@ -46,6 +46,18 @@
     return self;
 }
 
+- (void)stopProcessing {
+    self.requests = nil;
+    self.visionModel = nil;
+    self.taxonomy = nil;
+    self.recentTopBranches = nil;
+    self.recentTopPredictions = nil;
+}
+
+- (void)dealloc {
+    self.modelPath = nil;
+}
+
 - (NSArray *)bestRecentBranch {
     // find the best recent branch
     // from self.recentTopBranches
