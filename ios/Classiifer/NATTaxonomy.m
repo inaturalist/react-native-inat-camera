@@ -109,12 +109,15 @@
     return self;
 }
 
+- (NSArray *)inflateTopBranchFromClassification:(MLMultiArray *)classification {
+    NSDictionary *scores = [self aggregateScores:classification];
+    return [self buildBestBranchFromScores:scores];
+}
+
 - (NATPrediction *)inflateTopPredictionFromClassification:(MLMultiArray *)classification confidenceThreshold:(float)threshold {
     NSDictionary *scores = [self aggregateScores:classification];
     NSArray *bestBranch = [self buildBestBranchFromScores:scores];
-    
-    self.latestBestBranch = bestBranch;
-    
+        
     for (NATPrediction *prediction in [bestBranch reverseObjectEnumerator]) {
         if (prediction.score > threshold) {
             return prediction;

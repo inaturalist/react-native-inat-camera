@@ -10,6 +10,8 @@
 @import Vision;
 @import CoreML;
 
+#define NUM_RECENT_PREDICTIONS 5
+
 #import "NATClassifier.h"
 #import "NATTaxonomy.h"
 #import "NATPrediction.h"
@@ -19,6 +21,10 @@
 @property VNCoreMLModel *visionModel;
 @property NATTaxonomy *taxonomy;
 @property NSArray *requests;
+
+@property NSMutableArray *recentTopBranches;
+@property NSMutableArray *recentTopPredictions;
+
 @end
 
 @implementation NATClassifier
@@ -32,17 +38,42 @@
         self.threshold = .80;
         
         [self setupVision];
+        
+        self.recentTopBranches = [NSMutableArray array];
+        self.recentTopPredictions = [NSMutableArray array];
     }
     
     return self;
 }
 
-- (NSArray *)latestBestBranch {
-    NSMutableArray *array = [NSMutableArray array];
-    for (NATPrediction *prediction in [self.taxonomy latestBestBranch]) {
-        [array addObject:[prediction asDict]];
+- (NSArray *)bestRecentBranch {
+    // find the best recent branch
+    // from self.recentTopBranches
+    NSArray *bestRecentBranch = nil;
+    if (self.recentTopBranches.count == 0) {
+        return nil;
+    } else if (self.recentTopBranches.count == 1) {
+        bestRecentBranch = self.recentTopBranches.firstObject;
+    } else {
+        // return the recent best branch with the best, most specific score
+        bestRecentBranch = [self.recentTopBranches lastObject];
+        // most specific score is last in each branch
+        float bestRecentBranchScore = [[bestRecentBranch lastObject] score];
+        for (NSArray *candidateRecentBranch in [self.recentTopBranches reverseObjectEnumerator]) {
+            float candidateRecentBranchScore = [[candidateRecentBranch lastObject] score];
+            if (candidateRecentBranchScore > bestRecentBranchScore) {
+                bestRecentBranch = candidateRecentBranch;
+                bestRecentBranchScore = candidateRecentBranchScore;
+            }
+        }
     }
-    return [NSArray arrayWithArray:array];
+
+    // convert the NATPredictions in the bestRecentBranch into dicts
+    NSMutableArray *bestRecentBranchAsDict = [NSMutableArray array];
+    for (NATPrediction *prediction in bestRecentBranch) {
+        [bestRecentBranchAsDict addObject:[prediction asDict]];
+    }
+    return bestRecentBranchAsDict;
 }
 
 - (void)setupVision {
@@ -90,9 +121,35 @@
         VNCoreMLFeatureValueObservation *firstResult = request.results.firstObject;
         MLFeatureValue *firstFV = firstResult.featureValue;
         MLMultiArray *mm = firstFV.multiArrayValue;
+        
+        // evaluate the best branch
+        NSArray *bestBranch = [self.taxonomy inflateTopBranchFromClassification:mm];
+        // add this to the end of the recent top branches array
+        [self.recentTopBranches addObject:bestBranch];
+        // trim stuff from the beginning
+        while (self.recentTopBranches.count > NUM_RECENT_PREDICTIONS) {
+            [self.recentTopBranches removeObjectAtIndex:0];
+        }
+        
+        // evaluate the top prediction
         NATPrediction *topPrediction = [self.taxonomy inflateTopPredictionFromClassification:mm
                                                                          confidenceThreshold:self.threshold];
-        [self.delegate topClassificationResult:[topPrediction asDict]];
+        // add this top prediction to the recent top predictions array
+        [self.recentTopPredictions addObject:topPrediction];
+        // trim stuff from the beginning
+        while (self.recentTopPredictions.count > NUM_RECENT_PREDICTIONS) {
+            [self.recentTopPredictions removeObjectAtIndex:0];
+        }
+        
+        // find the recent prediction with the most specific rank
+        NATPrediction *bestRecentPrediction = [self.recentTopPredictions lastObject];
+        for (NATPrediction *candidateRecentPrediction in [self.recentTopPredictions reverseObjectEnumerator]) {
+            if (candidateRecentPrediction.rank < bestRecentPrediction.rank) {
+                bestRecentPrediction = candidateRecentPrediction;
+            }
+        }
+        
+        [self.delegate topClassificationResult:[bestRecentPrediction asDict]];
     };
     
     VNCoreMLRequest *objectRecognition = [[VNCoreMLRequest alloc] initWithModel:visionModel
@@ -113,6 +170,70 @@
                                requestError.localizedDescription];
         [self.delegate classifierError:errString];
     }
+}
+
+-(void)classifyImageData:(NSData *)data orientation:(CGImagePropertyOrientation)orientation handler:(BranchClassificationHandler)predictionCompletion {
+    
+    VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithData:data
+                                                                                 orientation:orientation
+                                                                                     options:@{}];
+    
+    VNRequestCompletionHandler requestHandler = ^(VNRequest * _Nonnull request, NSError * _Nullable error) {
+        VNCoreMLFeatureValueObservation *firstResult = request.results.firstObject;
+        MLFeatureValue *firstFV = firstResult.featureValue;
+        MLMultiArray *mm = firstFV.multiArrayValue;
+        NSArray *topBranch = [self.taxonomy inflateTopBranchFromClassification:mm];
+        
+        NSMutableArray *topBranchDicts = [NSMutableArray arrayWithCapacity:topBranch.count];
+        for (NATPrediction *branch in topBranch) {
+            [topBranchDicts addObject:[branch asDict]];
+        }
+        
+        predictionCompletion(topBranchDicts, nil);
+    };
+    
+    VNCoreMLRequest *objectRecognition = [[VNCoreMLRequest alloc] initWithModel:self.visionModel
+                                                              completionHandler:requestHandler];
+    objectRecognition.imageCropAndScaleOption = VNImageCropAndScaleOptionCenterCrop;
+    NSError *requestError = nil;
+    [imageRequestHandler performRequests:@[objectRecognition]
+                                   error:&requestError];
+    if (requestError) {
+        predictionCompletion(nil, requestError);
+    }
+    NSAssert(requestError == nil, @"got a request error: %@", requestError.localizedDescription);
+}
+
+- (void)classifyImageData:(NSData *)data handler:(BranchClassificationHandler)predictionCompletion {
+    
+    VNImageRequestHandler *imageRequestHandler = [[VNImageRequestHandler alloc] initWithData:data
+                                                                                     options:@{ }];
+    
+    VNRequestCompletionHandler requestHandler = ^(VNRequest * _Nonnull request, NSError * _Nullable error) {
+        VNCoreMLFeatureValueObservation *firstResult = request.results.firstObject;
+        MLFeatureValue *firstFV = firstResult.featureValue;
+        MLMultiArray *mm = firstFV.multiArrayValue;
+        NSArray *topBranch = [self.taxonomy inflateTopBranchFromClassification:mm];
+        
+        NSMutableArray *topBranchDicts = [NSMutableArray arrayWithCapacity:topBranch.count];
+        for (NATPrediction *branch in topBranch) {
+            [topBranchDicts addObject:[branch asDict]];
+        }
+        
+        predictionCompletion(topBranchDicts, nil);
+    };
+    
+    VNCoreMLRequest *objectRecognition = [[VNCoreMLRequest alloc] initWithModel:self.visionModel
+                                                              completionHandler:requestHandler];
+    objectRecognition.imageCropAndScaleOption = VNImageCropAndScaleOptionCenterCrop;
+    NSError *requestError = nil;
+    [imageRequestHandler performRequests:@[objectRecognition]
+                                   error:&requestError];
+    if (requestError) {
+        predictionCompletion(nil, requestError);
+    }
+    NSAssert(requestError == nil, @"got a request error: %@", requestError.localizedDescription);
+
 }
 
 @end
