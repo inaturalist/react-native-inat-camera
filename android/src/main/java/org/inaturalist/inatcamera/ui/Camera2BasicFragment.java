@@ -383,7 +383,9 @@ public class Camera2BasicFragment extends Fragment
 
     @Override
     public void onDestroy() {
-        mClassifier.close();
+        if (mClassifier != null) {
+            mClassifier.close();
+        }
         super.onDestroy();
     }
 
