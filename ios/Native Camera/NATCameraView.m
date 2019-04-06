@@ -22,8 +22,6 @@
 @property AVCaptureSession *session;
 @property dispatch_queue_t  videoDataOutputQueue;
 @property CGSize bufferSize;
-@property NSArray *requests;
-@property NSDictionary *leafTaxa;
 @property NATClassifier *classifier;
 @property NSDate *lastPredictionTime;
 
@@ -44,7 +42,6 @@
     return _confidenceThreshold;
 }
 
-
 - (instancetype)initWithModelFile:(NSString *)modelFile taxonomyFile:(NSString *)taxonomyFile delegate:(id<NATCameraDelegate>)delegate {
     if (self = [super initWithFrame:CGRectZero]) {
         self.modelFile = modelFile;
@@ -53,6 +50,21 @@
     }
     
     return self;
+}
+
+- (void)dealloc {    
+    [self stopCaptureSession];
+    [self teardownAVCapture];
+    [self.classifier stopProcessing];
+    
+    self.previewLayer = nil;
+    self.session = nil;
+    self.videoDataOutput = nil;
+    self.stillImageOutput = nil;
+    self.classifier = nil;
+    self.lastPredictionTime = nil;
+    self.modelFile = nil;
+    self.taxonomyFile = nil;
 }
 
 - (void)setupClassifier {
@@ -259,16 +271,33 @@
             [fixedImageData writeToFile:imagePath options:NSDataWritingAtomic error:&writeError];
             if (writeError) {
                 reject(@"write_error", @"There was an error saving photo", writeError);
+                return;
             }
             
             NSString *imageUrlString = [[NSURL fileURLWithPath:imagePath] absoluteString];
-            
             NSMutableDictionary *responseDict = [NSMutableDictionary dictionary];
             responseDict[@"uri"] = imageUrlString;
             if (self.classifier) {
-                responseDict[@"predictions"] = [self.classifier latestBestBranch];
+                responseDict[@"predictions"] = [self.classifier bestRecentBranch];
             }
-            resolver([NSDictionary dictionaryWithDictionary:responseDict]);
+            resolver(responseDict);
+            
+            /*
+             TBD: this is producing very different predictions than
+             what's coming from the framebuffer classification
+             
+             [self.classifier classifyImageData:fixedImageData
+                                       handler:^(NSArray *topBranch, NSError *error) {
+                                           if (error) {
+                                               reject(@"classify_error",
+                                                      @"There was a classify error",
+                                                      error);
+                                           } else {
+                                               responseDict[@"predictions"] = topBranch;
+                                               resolver(responseDict);
+                                           }
+                                       }];
+             */
         }
     }];
 }
