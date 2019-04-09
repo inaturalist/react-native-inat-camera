@@ -313,6 +313,7 @@ public class Camera2BasicFragment extends Fragment
         try {
             mClassifier = new ImageClassifier(getActivity(), mModelFilename, mTaxonomyFilename);
         } catch (IOException e) {
+            e.printStackTrace();
             if (mCameraCallback != null) mCameraCallback.onClassifierError("Failed to initialize an image mClassifier: " + e.getMessage());
         } catch (OutOfMemoryError e) {
             e.printStackTrace();
@@ -386,6 +387,8 @@ public class Camera2BasicFragment extends Fragment
         if (mClassifier != null) {
             mClassifier.close();
         }
+        stopBackgroundThread();
+
         super.onDestroy();
     }
 
@@ -537,7 +540,7 @@ public class Camera2BasicFragment extends Fragment
     }
 
     /** Closes the current {@link CameraDevice}. */
-    private void closeCamera() {
+    public void closeCamera() {
         try {
             cameraOpenCloseLock.acquire();
             if (null != captureSession) {
@@ -571,10 +574,13 @@ public class Camera2BasicFragment extends Fragment
     }
 
     /** Stops the background thread and its {@link Handler}. */
-    private void stopBackgroundThread() {
-        backgroundThread.quitSafely();
+    public void stopBackgroundThread() {
         try {
-            backgroundThread.join();
+            if (backgroundThread != null) {
+                backgroundThread.quitSafely();
+                backgroundThread.join();
+            }
+
             backgroundThread = null;
             backgroundHandler = null;
             synchronized (lock) {
@@ -733,6 +739,11 @@ public class Camera2BasicFragment extends Fragment
 
     /** Retrieves predictions for a single frame */
     public List<Prediction> getPredictionsForImage(Bitmap bitmap) {
+        if (mClassifier == null) {
+            Log.e(TAG, "getPredictionsForImage - classifier is null!");
+            return new ArrayList<Prediction>();
+        }
+
         // Resize bitmap to the size the classifier supports
         Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, ImageClassifier.DIM_IMG_SIZE_X, ImageClassifier.DIM_IMG_SIZE_Y, true);
 

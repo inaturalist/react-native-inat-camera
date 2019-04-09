@@ -281,6 +281,15 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
 
         return (ORIENTATIONS.get(rotation) + sensorOrientation + 270) % 360;
     }
+
+    public void stopCamera(Promise promise) {
+        if (mCameraFragment != null) {
+            mCameraFragment.closeCamera();
+            mCameraFragment.stopBackgroundThread();
+        }
+        WritableMap result = Arguments.createMap();
+        promise.resolve(result);
+    }
     
     public void takePictureAsync(ReadableMap options, Promise promise) {
         Bitmap bitmap = mCameraFragment.takePicture();

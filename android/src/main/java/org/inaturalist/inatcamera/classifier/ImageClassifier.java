@@ -7,6 +7,7 @@ import android.util.Log;
 
 import org.tensorflow.lite.Interpreter;
 
+import java.util.ArrayList;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -88,7 +89,12 @@ public class ImageClassifier {
         }
 
         Object[] input = { imgData };
+        try {
         mTFlite.runForMultipleInputsOutputs(input, expectedOutputs);
+        } catch (Exception exc) {
+            exc.printStackTrace();
+            return new ArrayList<Prediction>();
+        }
         List<Prediction> predictions = mTaxonomy.predict(expectedOutputs);
         long endTime = SystemClock.uptimeMillis();
 

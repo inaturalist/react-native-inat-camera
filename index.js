@@ -104,6 +104,10 @@ export default class INatCamera extends React.Component<PropsType, StateType> {
     }
 
 
+    async stopCamera() {
+        return await NativeModules.INatCameraModule.stopCamera(this._cameraHandle); 
+    }
+
     async takePictureAsync(options?: PictureOptions) {
         if (!options) {
             options = {};

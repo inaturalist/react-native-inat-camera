@@ -27,11 +27,6 @@ public class INatCameraViewManager extends SimpleViewManager<INatCameraView> {
         return new INatCameraView(reactContext, reactContext.getCurrentActivity());
     }
 
-    @ReactMethod
-    public void takePictureAsync(String message) {
-        Toast.makeText(mContext, message, 1000).show();
-    }
-
     @ReactProp(name = "taxaDetectionInterval")
     public void setTaxaDetectionInterval(INatCameraView view, String interval) {
         view.setTaxaDetectionInterval(Integer.valueOf(interval));

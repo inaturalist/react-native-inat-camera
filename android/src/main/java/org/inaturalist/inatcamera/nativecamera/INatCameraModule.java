@@ -35,6 +35,23 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
 
 
     @ReactMethod
+    public void stopCamera(final int viewTag, final Promise promise) {
+        final ReactApplicationContext context = getReactApplicationContext();
+        UIManagerModule uiManager = context.getNativeModule(UIManagerModule.class);
+        uiManager.addUIBlock(new UIBlock() {
+            @Override
+            public void execute(NativeViewHierarchyManager nativeViewHierarchyManager) {
+                INatCameraView cameraView = (INatCameraView) nativeViewHierarchyManager.resolveView(viewTag);
+                try {
+                    cameraView.stopCamera(promise);
+                } catch (Exception e) {
+                    promise.reject("stopCamera: Expected a Camera component");
+                }
+            }
+        });
+    }
+
+    @ReactMethod
     public void takePictureAsync(final ReadableMap options, final int viewTag, final Promise promise) {
         final ReactApplicationContext context = getReactApplicationContext();
         UIManagerModule uiManager = context.getNativeModule(UIManagerModule.class);
