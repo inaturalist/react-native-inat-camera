@@ -65,6 +65,8 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
 
     private static final int DEFAULT_TAXON_DETECTION_INTERVAL = 1000;
 
+    private static final int LAST_PREDICTIONS_COUNT = 5;
+
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
 
     private static final Map<Integer, String> RANK_LEVEL_TO_NAME;
@@ -117,9 +119,12 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     private int mTaxaDetectionInterval = DEFAULT_TAXON_DETECTION_INTERVAL;
     private long mLastErrorTime = 0;
     private long mLastPredictionTime = 0;
+    private float mConfidenceThreshold = Camera2BasicFragment.DEFAULT_CONFIDENCE_THRESHOLD;
     private Activity mActivity = null;
 
     private boolean mReplacedFragment = false;
+
+    private List<Prediction> mLastPredictions = new ArrayList<>();
 
     public INatCameraView(Context context) {
         super(context);
@@ -159,6 +164,7 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     }
 
     public void setConfidenceThreshold(float confidence) {
+        mConfidenceThreshold = confidence;
         mCameraFragment.setConfidenceThreshold(confidence);
     }
 
@@ -370,8 +376,27 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
             result.putString("uri", path);
 
             WritableArray results = Arguments.createArray();
+
+            boolean hasGoodPrediction = false; // Whether or not the current result set has a species-level prediction with good enough confidence
+
             for (Prediction prediction : predictions) {
                 results.pushMap(nodeToMap(prediction));
+
+                if ((prediction.node.rank <= 10) && (prediction.probability > mConfidenceThreshold)) {
+                    hasGoodPrediction = true;
+                }
+            }
+
+            if (!hasGoodPrediction) {
+                // No good prediction (=species rank and high enough confidence level) - add a good one from last remembered predictions
+                for (int i = mLastPredictions.size() - 1; i >= 0; i--) {
+                    Prediction prediction = mLastPredictions.get(i);
+
+                    if ((prediction.node.rank <= 10) && (prediction.probability > mConfidenceThreshold)) {
+                        results.pushMap(nodeToMap(prediction));
+                        break;
+                    }
+                }
             }
 
             result.putArray("predictions", results);
@@ -539,6 +564,12 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
                 event);
 
         mLastPredictionTime = System.currentTimeMillis();
+        mLastPredictions.add(prediction);
+
+        if (mLastPredictions.size() > LAST_PREDICTIONS_COUNT) {
+            mLastPredictions.remove(0);
+        }
+
     }
 }
 

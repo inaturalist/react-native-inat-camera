@@ -63,7 +63,7 @@ public class Camera2BasicFragment extends Fragment
 
     private static final String HANDLE_THREAD_NAME = "CameraBackground";
 
-    private static final float DEFAULT_CONFIDENCE_THRESHOLD = 0.8f;
+    public static final float DEFAULT_CONFIDENCE_THRESHOLD = 0.8f;
 
     // Reasons why the device is not supported
     private static final int REASON_DEVICE_SUPPORTED = 0;
