@@ -39,6 +39,8 @@ import android.view.TextureView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+import android.view.MotionEvent;
+import android.graphics.Rect;
 
 import org.inaturalist.inatcamera.R;
 import org.inaturalist.inatcamera.classifier.ImageClassifier;
@@ -53,10 +55,11 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import android.view.View.OnTouchListener;
 
 /** Basic fragments for the Camera. */
 public class Camera2BasicFragment extends Fragment
-        implements FragmentCompat.OnRequestPermissionsResultCallback {
+        implements FragmentCompat.OnRequestPermissionsResultCallback, OnTouchListener {
 
     /** Tag for the {@link Log}. */
     private static final String TAG = "TfLiteCameraDemo";
@@ -92,6 +95,8 @@ public class Camera2BasicFragment extends Fragment
     private float mConfidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD;
 
     private int mSensorOrientation = 0;
+
+    private CameraCharacteristics mCameraCharacteristics = null;
 
     public interface CameraListener {
         void onCameraError(String error);
@@ -178,6 +183,13 @@ public class Camera2BasicFragment extends Fragment
                     if (mCameraCallback != null) mCameraCallback.onCameraError("Error obtaining camera: " + error);
                 }
             };
+
+    // Zooming
+    protected float fingerSpacing = 0;
+    protected float zoomLevel = 1f;
+    protected float maximumZoomLevel;
+    protected Rect zoom;
+
 
     /** An additional thread for running tasks that shouldn't block the UI. */
     private HandlerThread backgroundThread;
@@ -284,7 +296,9 @@ public class Camera2BasicFragment extends Fragment
     /** Layout the preview and buttons. */
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_camera2_basic, container, false);
+        View view = inflater.inflate(R.layout.fragment_camera2_basic, container, false);
+        view.setOnTouchListener(this);
+        return view;
     }
 
     /** Connect the buttons to their event handler. */
@@ -403,16 +417,19 @@ public class Camera2BasicFragment extends Fragment
         CameraManager manager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
         try {
             for (String cameraId : manager.getCameraIdList()) {
-                CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
+                mCameraCharacteristics = manager.getCameraCharacteristics(cameraId);
+
+                maximumZoomLevel = mCameraCharacteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
+                
 
                 // We don't use a front facing camera in this sample.
-                Integer facing = characteristics.get(CameraCharacteristics.LENS_FACING);
+                Integer facing = mCameraCharacteristics.get(CameraCharacteristics.LENS_FACING);
                 if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
                     continue;
                 }
 
                 StreamConfigurationMap map =
-                        characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+                        mCameraCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
                 if (map == null) {
                     continue;
                 }
@@ -430,7 +447,7 @@ public class Camera2BasicFragment extends Fragment
                 int displayRotation = activity.getWindowManager().getDefaultDisplay().getRotation();
                 // noinspection ConstantConditions
                 /* Orientation of the camera sensor */
-                int sensorOrientation = characteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
+                int sensorOrientation = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
                 boolean swappedDimensions = false;
                 switch (displayRotation) {
                     case Surface.ROTATION_0:
@@ -501,6 +518,56 @@ public class Camera2BasicFragment extends Fragment
             // device this code runs.
             if (mCameraCallback != null) mCameraCallback.onCameraError("Error obtaining camera: " + e.getMessage());
         }
+    }
+
+
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        try {
+            Rect rect = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+            if (rect == null) return false;
+            float currentFingerSpacing;
+
+            if (event.getPointerCount() == 2) { // Multi touch
+                currentFingerSpacing = getFingerSpacing(event);
+                float delta = 0.05f; // Control this value to control the zooming sensibility
+                if (fingerSpacing != 0) {
+                    if (currentFingerSpacing > fingerSpacing) { // Don't over zoom-in
+                        if ((maximumZoomLevel - zoomLevel) <= delta) {
+                            delta = maximumZoomLevel - zoomLevel;
+                        }
+                        zoomLevel = zoomLevel + delta;
+                    } else if (currentFingerSpacing < fingerSpacing){ // Don't over zoom-out
+                        if ((zoomLevel - delta) < 1f) {
+                            delta = zoomLevel - 1f;
+                        }
+                        zoomLevel = zoomLevel - delta;
+                    }
+                    float ratio = (float) 1 / zoomLevel; // This ratio is the ratio of cropped Rect to Camera's original(Maximum) Rect
+                    // croppedWidth and croppedHeight are the pixels cropped away, not pixels after cropped
+                    int croppedWidth = rect.width() - Math.round((float)rect.width() * ratio);
+                    int croppedHeight = rect.height() - Math.round((float)rect.height() * ratio);
+                    // Finally, zoom represents the zoomed visible area
+                    zoom = new Rect(croppedWidth/2, croppedHeight/2,
+                            rect.width() - croppedWidth/2, rect.height() - croppedHeight/2);
+                    previewRequestBuilder.set(CaptureRequest.SCALER_CROP_REGION, zoom);
+                }
+                fingerSpacing = currentFingerSpacing;
+            } else { // Single touch point, needs to return true in order to detect one more touch point
+                return true;
+            }
+            captureSession.setRepeatingRequest(previewRequestBuilder.build(), captureCallback, null);
+            return true;
+        } catch (final Exception e) {
+            return true;
+        }
+    }
+
+
+    private float getFingerSpacing(MotionEvent event) {
+        float x = event.getX(0) - event.getX(1);
+        float y = event.getY(0) - event.getY(1);
+        return (float) Math.sqrt(x * x + y * y);
     }
 
     /** Opens the camera specified by {@link Camera2BasicFragment#cameraId}. */
