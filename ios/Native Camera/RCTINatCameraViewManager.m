@@ -62,9 +62,17 @@ RCT_REMAP_METHOD(resumePreview,
                                                                 delegate:self];
     self.cameraView = cameraView;
 
-    [cameraView setupClassifier];
-    [cameraView setupAVCapture];
+    if (@available(iOS 11.0, *)) {
+        [cameraView setupClassifier];
+    } else {
+        [self cameraViewDeviceNotSupported:cameraView];
+    }
     
+    if (@available(iOS 10.0, *)) {
+        [cameraView setupAVCapture];
+    } else {
+        [self cameraView:cameraView cameraError:@"Camera Not Supported Pre iOS 10"];
+    }
     
     return cameraView;
 }
