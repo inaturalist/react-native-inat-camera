@@ -16,6 +16,7 @@
 @interface NATCameraView () <AVCaptureVideoDataOutputSampleBufferDelegate, NATClassifierDelegate> {
     float _confidenceThreshold;
 }
+@property AVCaptureDevice *videoDevice;
 @property AVCaptureVideoPreviewLayer *previewLayer;
 @property AVCaptureVideoDataOutput *videoDataOutput;
 @property AVCaptureStillImageOutput *stillImageOutput;
@@ -27,6 +28,9 @@
 
 @property NSString *modelFile;
 @property NSString *taxonomyFile;
+
+@property CGFloat prevZoomFactor;
+
 @end
 
 @implementation NATCameraView
@@ -47,7 +51,12 @@
         self.modelFile = modelFile;
         self.taxonomyFile = taxonomyFile;
         self.delegate = delegate;
+        self.prevZoomFactor = 1.0f;
     }
+    
+    UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self
+                                                                                action:@selector(pinched:)];
+    [self addGestureRecognizer:pinch];
     
     return self;
 }
@@ -86,6 +95,32 @@
     }
 }
 
+- (void)pinched:(UIPinchGestureRecognizer *)gesture {
+    // modify the previous zoom by the gesture scale
+    CGFloat vZoomFactor = gesture.scale * self.prevZoomFactor;
+    // clamp to the device capabilities
+    vZoomFactor = MAX(1.0, MIN(vZoomFactor, self.videoDevice.activeFormat.videoMaxZoomFactor));
+    
+    if (gesture.state == UIGestureRecognizerStateEnded) {
+        // once the gesture has ended, update the prevZoomFactor
+        self.prevZoomFactor = vZoomFactor;
+    }
+    
+    // lock the device for configuration and update the zoom factor
+    NSError *error = nil;
+    if ([self.videoDevice lockForConfiguration:&error]) {
+        self.videoDevice.videoZoomFactor = vZoomFactor;
+        [self.videoDevice unlockForConfiguration];
+    }
+    
+    // pass any errors off to react native
+    if (error) {
+        dispatch_async(dispatch_get_main_queue(), ^{
+            [self.delegate cameraView:self cameraError:error.localizedDescription];
+        });
+    }
+}
+
 - (void)setupAVCapture {
     // discover the camera
     NSArray *deviceTypes = @[AVCaptureDeviceTypeBuiltInWideAngleCamera];
@@ -99,6 +134,9 @@
         });
         return;
     }
+    
+    // stash the video device so we can use it for pinch zoom
+    self.videoDevice = discovery.devices.firstObject;
     
     // setup a device input from the camera
     NSError *captureDeviceSetupError = nil;
