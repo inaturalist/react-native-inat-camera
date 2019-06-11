@@ -182,6 +182,7 @@
                                                 queue:self.videoDataOutputQueue];
         
         AVCaptureConnection *captureConnection = [self.videoDataOutput connectionWithMediaType:AVMediaTypeVideo];
+        captureConnection.preferredVideoStabilizationMode = AVCaptureVideoStabilizationModeStandard;
         [captureConnection setEnabled:YES];
         
         // extract the size of the video feed
