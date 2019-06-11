@@ -125,8 +125,9 @@
     // begin capture session configuration
     self.session = [[AVCaptureSession alloc] init];
     [self.session beginConfiguration];
-    // Model image size is smaller
-    self.session.sessionPreset = AVCaptureSessionPreset640x480;
+    // this controls the quality of the video preview as well as the capture output,
+    // both to the vision API and the saved photo
+    self.session.sessionPreset = AVCaptureSessionPresetHigh;
     
     // add the video input
     if (![self.session canAddInput:input]) {
