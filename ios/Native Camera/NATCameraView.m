@@ -58,6 +58,12 @@
                                                                                 action:@selector(pinched:)];
     [self addGestureRecognizer:pinch];
     
+    UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:self
+                                                                          action:@selector(tapped:)];
+    tap.numberOfTapsRequired = 1;
+    tap.numberOfTouchesRequired = 1;
+    [self addGestureRecognizer:tap];
+    
     return self;
 }
 
@@ -92,6 +98,60 @@
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [self.delegate cameraViewDeviceNotSupported:self];
         });
+    }
+}
+
+- (void)showFocusBoxAtPoint:(CGPoint)focusPoint {
+    static UIView *focusBox = nil;
+    if (focusBox) {
+        [focusBox removeFromSuperview];
+    } else {
+        focusBox = [UIView new];
+        focusBox.backgroundColor = [UIColor clearColor];
+        focusBox.layer.borderColor = [UIColor whiteColor].CGColor;
+        focusBox.layer.borderWidth = 1.0f;
+        focusBox.layer.cornerRadius = 2.0f;
+    }
+    
+    focusBox.frame = CGRectMake(focusPoint.x - 40.0f, focusPoint.y - 40.0f, 80.0f, 80.0f);
+    focusBox.alpha = 1.0f;
+    
+    [self addSubview:focusBox];
+    [UIView animateWithDuration:1.5f animations:^{
+        focusBox.alpha = 0.0f;
+    }];
+}
+
+- (void)tapped:(UITapGestureRecognizer *)gesture {
+    // convert the touch location to a capture device point of interest
+    CGPoint touchPoint = [gesture locationInView:self];
+    CGPoint convertedPoint = [self.previewLayer captureDevicePointOfInterestForPoint:touchPoint];
+    
+    // make sure focus point of interest & autofocus are supported
+    if ([self.videoDevice isFocusPointOfInterestSupported] && [self.videoDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
+        
+        // lock the device for configuration and focus on the point of interest
+        NSError *error = nil;
+        if ([self.videoDevice lockForConfiguration:&error]) {
+            self.videoDevice.focusPointOfInterest = convertedPoint;
+            self.videoDevice.focusMode = AVCaptureFocusModeAutoFocus;
+            
+            [self showFocusBoxAtPoint:touchPoint];
+            
+            if ([self.videoDevice isExposureModeSupported:AVCaptureExposureModeAutoExpose] && [self.videoDevice isExposurePointOfInterestSupported]) {
+                self.videoDevice.exposureMode = AVCaptureExposureModeAutoExpose;
+                self.videoDevice.exposurePointOfInterest = convertedPoint;
+            }
+            
+            [self.videoDevice unlockForConfiguration];
+        }
+        
+        // pass any errors off to react native
+        if (error) {
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [self.delegate cameraView:self cameraError:error.localizedDescription];
+            });
+        }
     }
 }
 
@@ -137,6 +197,29 @@
     
     // stash the video device so we can use it for pinch zoom
     self.videoDevice = discovery.devices.firstObject;
+    
+    // set the video device initial focus & exposure modes
+    if ([self.videoDevice isFocusModeSupported:AVCaptureFocusModeAutoFocus]) {
+        NSError *error = nil;
+        if ([self.videoDevice lockForConfiguration:&error]) {
+            self.videoDevice.focusMode = AVCaptureFocusModeAutoFocus;
+            [self.videoDevice unlockForConfiguration];
+        }
+        if (error) {
+            [self.delegate cameraView:self cameraError:error.localizedDescription];
+        }
+    }
+    
+    if ([self.videoDevice isExposureModeSupported:AVCaptureExposureModeAutoExpose]) {
+        NSError *error = nil;
+        if ([self.videoDevice lockForConfiguration:&error]) {
+            self.videoDevice.exposureMode = AVCaptureExposureModeAutoExpose;
+            [self.videoDevice unlockForConfiguration];
+        }
+        if (error) {
+            [self.delegate cameraView:self cameraError:error.localizedDescription];
+        }
+    }
     
     // setup a device input from the camera
     NSError *captureDeviceSetupError = nil;
