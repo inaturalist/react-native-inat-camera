@@ -387,16 +387,33 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
                 }
             }
 
+            Prediction predictionAdded = null;
+
             if (!hasGoodPrediction) {
                 // No good prediction (=species rank and high enough confidence level) - add a good one from last remembered predictions
                 for (int i = mLastPredictions.size() - 1; i >= 0; i--) {
                     Prediction prediction = mLastPredictions.get(i);
 
                     if ((prediction.node.rank <= 10) && (prediction.probability > mConfidenceThreshold)) {
-                        results.pushMap(nodeToMap(prediction));
+                        predictionAdded = prediction;
                         break;
                     }
                 }
+            }
+
+            if (predictionAdded != null) {
+                // Make sure to remove the less precise prediction of the same rank
+                WritableArray results2 = Arguments.createArray();
+                for (Prediction prediction : predictions) {
+                    if (predictionAdded.node.rank == prediction.node.rank) {
+                        // Add the new, more precise prediction instead of this one
+                        results2.pushMap(nodeToMap(predictionAdded));
+                    } else {
+                        results2.pushMap(nodeToMap(prediction));
+                    }
+                }
+
+                results = results2;
             }
 
             result.putArray("predictions", results);
