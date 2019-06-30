@@ -50,6 +50,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.location.Criteria;
 import com.google.android.gms.common.ConnectionResult;
+import java.lang.NumberFormatException;
  
 
 public class INatCameraView extends FrameLayout implements Camera2BasicFragment.CameraListener {
@@ -380,7 +381,10 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
             boolean hasGoodPrediction = false; // Whether or not the current result set has a species-level prediction with good enough confidence
 
             for (Prediction prediction : predictions) {
-                results.pushMap(nodeToMap(prediction));
+                WritableMap map = nodeToMap(prediction);
+                if (map == null) continue;
+
+                results.pushMap(map);
 
                 if ((prediction.node.rank <= 10) && (prediction.probability > mConfidenceThreshold)) {
                     hasGoodPrediction = true;
@@ -407,9 +411,13 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
                 for (Prediction prediction : predictions) {
                     if (predictionAdded.node.rank == prediction.node.rank) {
                         // Add the new, more precise prediction instead of this one
-                        results2.pushMap(nodeToMap(predictionAdded));
+                        WritableMap map = nodeToMap(predictionAdded);
+                        if (map == null) continue;
+                        results2.pushMap(map);
                     } else {
-                        results2.pushMap(nodeToMap(prediction));
+                        WritableMap map = nodeToMap(prediction);
+                        if (map == null) continue;
+                        results2.pushMap(map);
                     }
                 }
 
@@ -512,11 +520,17 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     private WritableMap nodeToMap(Prediction prediction) {
         WritableMap result = Arguments.createMap();
 
-        result.putInt("taxon_id", Integer.valueOf(prediction.node.key));
-        result.putString("name", prediction.node.name);
-        result.putDouble("score", prediction.probability);
-        result.putInt("rank", prediction.node.rank);
-        result.putInt("class_id", Integer.valueOf(prediction.node.classId));
+        try {
+            result.putInt("taxon_id", Integer.valueOf(prediction.node.key));
+            result.putString("name", prediction.node.name);
+            result.putDouble("score", prediction.probability);
+            result.putInt("rank", prediction.node.rank);
+            result.putInt("class_id", Integer.valueOf(prediction.node.classId));
+        } catch (NumberFormatException exc) {
+            // Invalid node key or class ID
+            exc.printStackTrace();
+            return null;
+        }
 
         // Create the ancestors list for the result
         List<Integer> ancestorsList = new ArrayList<>();
@@ -547,6 +561,8 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
 
         for (Prediction prediction : predictions) {
             WritableMap result = nodeToMap(prediction);
+            if (result == null) continue;
+
             if (!ranks.containsKey(prediction.node.rank)) {
                 ranks.put(prediction.node.rank, Arguments.createArray());
             }

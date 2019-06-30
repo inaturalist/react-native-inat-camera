@@ -61,6 +61,8 @@ import android.view.View.OnTouchListener;
 import android.hardware.camera2.params.MeteringRectangle;
 import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CameraMetadata;
+import java.lang.IllegalStateException;
+
 
 /** Basic fragments for the Camera. */
 public class Camera2BasicFragment extends Fragment
@@ -812,7 +814,13 @@ public class Camera2BasicFragment extends Fragment
                                         previewRequest, captureCallback, backgroundHandler);
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
+                                if (mCameraCallback != null) mCameraCallback.onCameraError("Failed to open camera (camera access denied)");
+                            } catch (IllegalStateException e) {
+                                // If camera is closed
+                                e.printStackTrace();
+                                if (mCameraCallback != null) mCameraCallback.onCameraError("Failed to open camera (camera is closed)");
                             }
+
 
                             mCameraConfigured = true;
                         }
@@ -825,6 +833,11 @@ public class Camera2BasicFragment extends Fragment
                     null);
         } catch (CameraAccessException e) {
             e.printStackTrace();
+            if (mCameraCallback != null) mCameraCallback.onCameraError("Failed to open camera (camera access denied)");
+        } catch (IllegalStateException e) {
+            // If camera is closed
+            e.printStackTrace();
+            if (mCameraCallback != null) mCameraCallback.onCameraError("Failed to open camera (camera is closed)");
         }
     }
 
