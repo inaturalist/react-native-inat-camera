@@ -43,6 +43,9 @@ import android.view.MotionEvent;
 import android.graphics.Rect;
 import android.graphics.Paint;
 import android.view.SurfaceHolder;
+import android.widget.RelativeLayout.LayoutParams;
+import android.view.animation.Animation;
+import android.view.animation.AlphaAnimation;
 
 import org.inaturalist.inatcamera.R;
 import org.inaturalist.inatcamera.classifier.ImageClassifier;
@@ -106,6 +109,8 @@ public class Camera2BasicFragment extends Fragment
     private CameraCharacteristics mCameraCharacteristics = null;
     
     private boolean mManualFocusEngaged = false;
+
+    private View focusAreaView;
 
     public interface CameraListener {
         void onCameraError(String error);
@@ -314,6 +319,8 @@ public class Camera2BasicFragment extends Fragment
     @Override
     public void onViewCreated(final View view, Bundle savedInstanceState) {
         textureView = (AutoFitTextureView) view.findViewById(R.id.texture);
+        focusAreaView = view.findViewById(R.id.auto_focus_area);
+        focusAreaView.setVisibility(View.GONE);
     }
 
     /** Load the model and labels. */
@@ -571,7 +578,7 @@ public class Camera2BasicFragment extends Fragment
                 // Single touch point, needs to return true in order to detect one more touch point
 
                 final int actionMasked = event.getActionMasked();
-                if (actionMasked != MotionEvent.ACTION_DOWN) {
+                if (actionMasked != MotionEvent.ACTION_UP) {
                     return true;
                 }
 
@@ -605,6 +612,32 @@ public class Camera2BasicFragment extends Fragment
 
     // Much credit - https://gist.github.com/royshil/8c760c2485257c85a11cafd958548482
     void setFocusArea(float x, float y) {
+        LayoutParams params = (LayoutParams)focusAreaView.getLayoutParams();
+        params.leftMargin = (int)(x - 50);
+        params.topMargin = (int)(y - 50);
+        focusAreaView.setLayoutParams(params);
+
+        focusAreaView.setVisibility(View.VISIBLE);
+        focusAreaView.setAlpha(1.0f);
+
+        focusAreaView.animate()
+            .alpha(0f)
+            .setDuration(1300)
+            .withEndAction(new Runnable() {
+                @Override
+                public void run() {
+                    focusAreaView.setVisibility(View.GONE);
+                }
+            })
+            .start();
+        /*
+        Animation fadeOut = new AlphaAnimation(1, 0);
+        //fadeOut.setInterpolator(new AccelerateInterpolator()); //and this
+        fadeOut.setDuration(1300);
+        focusAreaView.setAnimation(fadeOut);
+        */
+        
+
         CameraCaptureSession.CaptureCallback captureCallbackHandler = new CameraCaptureSession.CaptureCallback() {
             @Override
             public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
