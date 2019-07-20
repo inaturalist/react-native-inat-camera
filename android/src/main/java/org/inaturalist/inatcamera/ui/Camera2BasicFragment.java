@@ -78,6 +78,8 @@ public class Camera2BasicFragment extends Fragment
 
     public static final float DEFAULT_CONFIDENCE_THRESHOLD = 0.8f;
 
+    private static final int DEFAULT_TAXON_DETECTION_INTERVAL = 1000;
+
     // Reasons why the device is not supported
     private static final int REASON_DEVICE_SUPPORTED = 0;
     private static final int REASON_DEVICE_NOT_SUPPORTED = 1;
@@ -89,6 +91,9 @@ public class Camera2BasicFragment extends Fragment
     private boolean mRunClassifier = false;
     private boolean mCheckedPermissions = false;
     private ImageClassifier mClassifier;
+
+    private int mTaxaDetectionInterval = DEFAULT_TAXON_DETECTION_INTERVAL;
+    private long mLastPredictionTime = 0;
 
     /** Max preview width that is guaranteed by Camera2 API */
     private static final int MAX_PREVIEW_WIDTH = 1920;
@@ -126,6 +131,10 @@ public class Camera2BasicFragment extends Fragment
 
     public void setConfidenceThreshold(float confidence) {
         mConfidenceThreshold = confidence;
+    }
+
+    public void setDetectionInterval(int interval) {
+        mTaxaDetectionInterval = interval;
     }
 
     /**
@@ -630,13 +639,6 @@ public class Camera2BasicFragment extends Fragment
                 }
             })
             .start();
-        /*
-        Animation fadeOut = new AlphaAnimation(1, 0);
-        //fadeOut.setInterpolator(new AccelerateInterpolator()); //and this
-        fadeOut.setDuration(1300);
-        focusAreaView.setAnimation(fadeOut);
-        */
-        
 
         CameraCaptureSession.CaptureCallback captureCallbackHandler = new CameraCaptureSession.CaptureCallback() {
             @Override
@@ -796,12 +798,26 @@ public class Camera2BasicFragment extends Fragment
             new Runnable() {
                 @Override
                 public void run() {
+                    long timePassed = System.currentTimeMillis() - mLastPredictionTime;
+                    if (timePassed < mTaxaDetectionInterval) {
+                        // Make sure we don't run the image classification too often
+                        try {
+                            Thread.sleep(mTaxaDetectionInterval - timePassed);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
                     synchronized (lock) {
                         if (mRunClassifier) {
                             classifyFrame();
                         }
                     }
+
+                    mLastPredictionTime = System.currentTimeMillis();
+
                     backgroundHandler.post(periodicClassify);
+
                 }
             };
 

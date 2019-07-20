@@ -64,8 +64,6 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     public static final String EVENT_NAME_ON_CLASSIFIER_ERROR = "onClassifierError";
     public static final String EVENT_NAME_ON_DEVICE_NOT_SUPPORTED = "onDeviceNotSupported";
 
-    private static final int DEFAULT_TAXON_DETECTION_INTERVAL = 1000;
-
     private static final int LAST_PREDICTIONS_COUNT = 5;
 
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
@@ -117,9 +115,7 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
 
     private ReactContext reactContext;
 
-    private int mTaxaDetectionInterval = DEFAULT_TAXON_DETECTION_INTERVAL;
     private long mLastErrorTime = 0;
-    private long mLastPredictionTime = 0;
     private float mConfidenceThreshold = Camera2BasicFragment.DEFAULT_CONFIDENCE_THRESHOLD;
     private Activity mActivity = null;
 
@@ -179,7 +175,7 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
     }
 
     public void setTaxaDetectionInterval(int interval) {
-        mTaxaDetectionInterval = interval;
+        mCameraFragment.setDetectionInterval(interval);
     }
     
 
@@ -309,7 +305,9 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
 
         try {
             // Save the bitmap into a JPEG file in the cache directory
-            File cacheDirectory = reactContext.getCacheDir();
+            // TODO
+            //File cacheDirectory = reactContext.getCacheDir();
+            File cacheDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS); 
             String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
             String path = cacheDirectory.getPath() + File.separator + "IMG_" + timeStamp + ".jpg";
 
@@ -582,11 +580,6 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
 
     @Override
     public void onTaxaDetected(Prediction prediction) {
-        if (System.currentTimeMillis() - mLastPredictionTime < mTaxaDetectionInterval) {
-            // Make sure we don't call this callback too often
-            return;
-        }
-
         // Convert Prediction into a structure separating by rank name
         List<Prediction> predictions = Arrays.asList(prediction);
         WritableMap event = predictionsToMap(predictions);
@@ -596,7 +589,6 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
                 EVENT_NAME_ON_TAXA_DETECTED,
                 event);
 
-        mLastPredictionTime = System.currentTimeMillis();
         mLastPredictions.add(prediction);
 
         if (mLastPredictions.size() > LAST_PREDICTIONS_COUNT) {
