@@ -1,5 +1,7 @@
 package org.inaturalist.inatcamera.ui;
 
+import android.util.DisplayMetrics;
+import android.content.res.Resources;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -592,7 +594,12 @@ public class Camera2BasicFragment extends Fragment
                 }
 
                 // Tap to focus
-                setFocusArea(event.getX(), event.getY());
+                DisplayMetrics displayMetrics = Resources.getSystem().getDisplayMetrics();
+                int screenHeight = displayMetrics.heightPixels;
+                int screenWidth = displayMetrics.widthPixels;
+
+                Log.d(TAG, "onTouch - Original Event: " + event.getX() + "/" + event.getY());
+                setFocusArea(event);
             }
             captureSession.setRepeatingRequest(previewRequestBuilder.build(), captureCallback, null);
             return true;
@@ -602,11 +609,11 @@ public class Camera2BasicFragment extends Fragment
     }
 
 
-    private MeteringRectangle calculateFocusArea(float x, float y) {
+    private MeteringRectangle calculateFocusArea(MotionEvent event) {
         final Rect sensorArraySize = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
 
-        final int xCoordinate = (int)(y  * (float)sensorArraySize.height());
-        final int yCoordinate = (int)(x * (float)sensorArraySize.width());
+        final int xCoordinate = (int)event.getY();
+        final int yCoordinate = (int)event.getX();
         final int halfTouchWidth  = 150;  //TODO: this doesn't represent actual touch size in pixel. Values range in [3, 10]...
         final int halfTouchHeight = 150;
         MeteringRectangle focusAreaTouch = new MeteringRectangle(Math.max(yCoordinate - halfTouchWidth,  0),
@@ -620,10 +627,14 @@ public class Camera2BasicFragment extends Fragment
 
 
     // Much credit - https://gist.github.com/royshil/8c760c2485257c85a11cafd958548482
-    void setFocusArea(float x, float y) {
+    void setFocusArea(MotionEvent event) {
+        MeteringRectangle focusAreaTouch = calculateFocusArea(event);
+
+        Log.d(TAG, "setFocusArea: Coords: " + focusAreaTouch.getX() + "/" + focusAreaTouch.getY() + " ... " + focusAreaTouch.getWidth() + "/" + focusAreaTouch.getHeight());
+
         LayoutParams params = (LayoutParams)focusAreaView.getLayoutParams();
-        params.leftMargin = (int)(x - 50);
-        params.topMargin = (int)(y - 50);
+        params.leftMargin = (int)(focusAreaTouch.getX());
+        params.topMargin = (int)(focusAreaTouch.getY());
         focusAreaView.setLayoutParams(params);
 
         focusAreaView.setVisibility(View.VISIBLE);
@@ -678,7 +689,6 @@ public class Camera2BasicFragment extends Fragment
         }
 
         if (isMeteringAreaAFSupported()) {
-            MeteringRectangle focusAreaTouch = calculateFocusArea(x, y);
             previewRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusAreaTouch});
         }
         previewRequestBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
@@ -853,14 +863,12 @@ public class Camera2BasicFragment extends Fragment
                             captureSession = cameraCaptureSession;
                             try {
                                 // Auto focus should be continuous for camera preview.
-                                previewRequestBuilder.set(
-                                        CaptureRequest.CONTROL_AF_MODE,
-                                        CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO);
+                                updateAutoFocus();
 
                                 // Finally, we start displaying the camera preview.
                                 previewRequest = previewRequestBuilder.build();
                                 captureSession.setRepeatingRequest(
-                                        previewRequest, captureCallback, backgroundHandler);
+                                        previewRequest, captureCallback, null);
                             } catch (CameraAccessException e) {
                                 e.printStackTrace();
                                 if (mCameraCallback != null) mCameraCallback.onCameraError("Failed to open camera (camera access denied)");
@@ -994,9 +1002,51 @@ public class Camera2BasicFragment extends Fragment
 
     /** Resumes the preview */
     public void resumePreview() {
-        createCameraPreviewSession();
+        unlockFocus();
         synchronized (lock) {
             mRunClassifier = true;
+        }
+    }
+
+
+    /**
+     * Unlocks the auto-focus and restart camera preview. This is supposed to be called after
+     * capturing a still picture.
+     */
+    void unlockFocus() {
+        previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+                CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+        try {
+            captureSession.capture(previewRequestBuilder.build(), captureCallback, null);
+            updateAutoFocus();
+            previewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+                    CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
+            captureSession.setRepeatingRequest(previewRequestBuilder.build(), captureCallback,
+                    null);
+        } catch (CameraAccessException e) {
+            Log.e(TAG, "Failed to restart camera preview.", e);
+        }
+    }
+
+    private boolean mAutoFocus;
+
+    void updateAutoFocus() {
+        if (mAutoFocus) {
+            int[] modes = mCameraCharacteristics.get(
+                    CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
+            // Auto focus is not supported
+            if (modes == null || modes.length == 0 ||
+                    (modes.length == 1 && modes[0] == CameraCharacteristics.CONTROL_AF_MODE_OFF)) {
+                mAutoFocus = false;
+                previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
+                        CaptureRequest.CONTROL_AF_MODE_OFF);
+            } else {
+                previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
+                        CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+            }
+        } else {
+            previewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
+                    CaptureRequest.CONTROL_AF_MODE_OFF);
         }
     }
 
