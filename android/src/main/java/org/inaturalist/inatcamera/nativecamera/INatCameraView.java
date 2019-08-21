@@ -10,7 +10,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import android.graphics.Bitmap;
 import java.util.Calendar;
-import android.support.media.ExifInterface;
+import androidx.exifinterface.media.ExifInterface;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
