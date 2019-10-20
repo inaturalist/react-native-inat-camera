@@ -293,7 +293,7 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
         WritableMap result = Arguments.createMap();
         promise.resolve(result);
     }
-    
+
     public void takePictureAsync(ReadableMap options, Promise promise) {
         Bitmap bitmap = mCameraFragment.takePicture();
 
@@ -515,7 +515,7 @@ public class INatCameraView extends FrameLayout implements Camera2BasicFragment.
 
 
     /** Converts a prediction result to a map */
-    private WritableMap nodeToMap(Prediction prediction) {
+    public static WritableMap nodeToMap(Prediction prediction) {
         WritableMap result = Arguments.createMap();
 
         try {

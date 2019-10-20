@@ -1,6 +1,5 @@
 package org.inaturalist.inatcamera.classifier;
 
-import android.app.Activity;
 import android.graphics.Bitmap;
 import android.os.SystemClock;
 import android.util.Log;
@@ -52,10 +51,10 @@ public class ImageClassifier {
 
 
     /** Initializes an {@code ImageClassifier}. */
-    public ImageClassifier(Activity activity, String modelPath, String taxonomyPath) throws IOException {
+    public ImageClassifier(String modelPath, String taxonomyPath) throws IOException {
         mModelFilename = modelPath;
         mTaxonomyFilename = taxonomyPath;
-        mTFlite = new Interpreter(loadModelFile(activity));
+        mTFlite = new Interpreter(loadModelFile());
         imgData =
                 ByteBuffer.allocateDirect(
                         4 * DIM_BATCH_SIZE * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * DIM_PIXEL_SIZE);
@@ -90,7 +89,7 @@ public class ImageClassifier {
 
         Object[] input = { imgData };
         try {
-        mTFlite.runForMultipleInputsOutputs(input, expectedOutputs);
+            mTFlite.runForMultipleInputsOutputs(input, expectedOutputs);
         } catch (Exception exc) {
             exc.printStackTrace();
             return new ArrayList<Prediction>();
@@ -108,7 +107,7 @@ public class ImageClassifier {
     }
 
     /** Memory-map the model file in Assets. */
-    private MappedByteBuffer loadModelFile(Activity activity) throws IOException {
+    private MappedByteBuffer loadModelFile() throws IOException {
         FileInputStream inputStream = new FileInputStream(mModelFilename);
         FileChannel fileChannel = inputStream.getChannel();
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, inputStream.available());

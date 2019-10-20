@@ -356,7 +356,7 @@ public class Camera2BasicFragment extends Fragment
         }
 
         try {
-            mClassifier = new ImageClassifier(getActivity(), mModelFilename, mTaxonomyFilename);
+            mClassifier = new ImageClassifier(mModelFilename, mTaxonomyFilename);
         } catch (IOException e) {
             e.printStackTrace();
             if (mCameraCallback != null) mCameraCallback.onClassifierError("Failed to initialize an image mClassifier: " + e.getMessage());

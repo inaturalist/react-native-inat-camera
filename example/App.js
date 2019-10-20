@@ -9,16 +9,17 @@
 
 import React, {Component} from 'react';
 import {Platform, StyleSheet, Text, View, Alert, Button} from 'react-native';
-import INatCamera from './INatCamera';
+import { createAppContainer, createStackNavigator } from 'react-navigation';
+import { INatCamera, getPredictionsForImage } from './INatCamera';
 
 type Props = {};
-export default class App extends Component<Props> {
+
+class CameraApp extends Component<Props> {
   constructor(props) {
     super(props);
     this.state = { content: '', resumeHidden: true };
 
       console.log('Initialized page');
-
   }   
 
   onTakePhoto = () => {
@@ -65,6 +66,7 @@ export default class App extends Component<Props> {
   }
 
   onClassifierError = event => {
+      console.log(event.nativeEvent.error);
         Alert.alert(`Classifier error: ${event.nativeEvent.error}`)
   }
 
@@ -84,7 +86,7 @@ export default class App extends Component<Props> {
             onDeviceNotSupported={this.onDeviceNotSupported}
             modelPath="/sdcard/Download/optimized_model.tflite"
             taxonomyPath="/sdcard/Download/taxonomy_data.csv"
-            taxaDetectionInterval="2000"
+            taxaDetectionInterval="10"
             confidenceThreshold="0.7"
             style={styles.camera} />
 
@@ -92,7 +94,7 @@ export default class App extends Component<Props> {
             {
                 this.state.resumeHidden ?
                 <Button
-                    onPress={this.onTakePhoto}
+                    onPress={() => {this.onTakePhoto()}}
                     style={styles.takePhoto}
                     color="#841584"
                     title="Take Photo"
@@ -147,6 +149,14 @@ const styles = StyleSheet.create({
       borderWidth: 1,
       borderRadius: 12,
   },
+  initialPredictions: {
+      width: '100%',
+      height: 400,
+      top: 100,
+      left: 0,
+      position: 'absolute',
+      color: 'black',
+  },
   container: {
     top: 0,
     left: 0,
@@ -173,4 +183,63 @@ const styles = StyleSheet.create({
 });
 
 
+
+
+class Home extends Component {
+
+    constructor(props) {
+        super(props);
+
+        console.log('Initializing app');
+        this.state = { content: '' };
+    }
+
+    static navigationOptions = {
+        title: "Hello world"
+    };
+
+
+    showCamera() {
+        this.props.navigation.navigate('Camera');
+    }
+
+    predictions() {
+        getPredictionsForImage({
+            uri: '/sdcard/Download/input.jpg',
+            modelFilename: '/sdcard/Download/optimized_model.tflite',
+            taxonomyFilename: '/sdcard/Download/taxonomy_data.csv'
+        }).then(result => {
+            console.log('Result', JSON.stringify(result));
+            this.setState({ content: JSON.stringify(result) });
+            alert('Success');
+        }).catch(err => {
+            console.log('Error', err);
+            alert('Error: ' + err);
+        });
+    }
+
+    render() {
+        return (
+            <View>
+                   <Button title="Camera" onPress={() => this.showCamera()} />
+                   <Button title="Predictions based on image" onPress={() => this.predictions()} />
+                    <Text style={styles.initialPredictions}>
+                        {this.state.content}
+                    </Text>
+            </View>
+        );
+    }
+}
+
+
+
+
+const AppNavigator = createStackNavigator({
+    Camera: CameraApp,
+    Home: Home,
+}, {
+    initialRouteName: 'Home',
+});
+
+export default createAppContainer(AppNavigator);
 

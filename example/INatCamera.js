@@ -18,7 +18,18 @@ type PictureOptions = {
   pauseAfterCapture?: boolean,
 };
 
-export default class INatCamera extends React.Component<PropsType, StateType> {
+type getPredictionsForImageOptions = {
+    uri: string,
+    modelFilename: string,
+    taxonomyFilename: string
+};
+
+
+export function getPredictionsForImage(options: getPredictionsForImageOptions) {
+    return NativeModules.INatCameraModule.getPredictionsForImage(options); 
+}
+
+export class INatCamera extends React.Component<PropsType, StateType> {
     static propTypes = {
         taxaDetectionInterval: PropTypes.string,
         modelPath: PropTypes.string,
