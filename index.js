@@ -18,18 +18,23 @@ type PictureOptions = {
   pauseAfterCapture?: boolean,
 };
 
-export default class INatCamera extends React.Component<PropsType, StateType> {
+type getPredictionsForImageOptions = {
+    uri: string,
+    modelFilename: string,
+    taxonomyFilename: string
+};
+
+
+export function getPredictionsForImage(options: getPredictionsForImageOptions) {
+    return NativeModules.INatCameraModule.getPredictionsForImage(options); 
+}
+
+export class INatCamera extends React.Component<PropsType, StateType> {
     static propTypes = {
-        taxaDetectionInterval: PropTypes.oneOfType([
-          PropTypes.string,
-          PropTypes.number
-        ]),
+        taxaDetectionInterval: PropTypes.string,
         modelPath: PropTypes.string,
         taxonomyPath: PropTypes.string,
-        confidenceThreshold: PropTypes.oneOfType([
-          PropTypes.string,
-          PropTypes.number
-        ]),
+        confidenceThreshold: PropTypes.string,
         ...ViewPropTypes,
     };
 
@@ -104,10 +109,6 @@ export default class INatCamera extends React.Component<PropsType, StateType> {
     }
 
 
-    async stopCamera() {
-        return await NativeModules.INatCameraModule.stopCamera(this._cameraHandle); 
-    }
-
     async takePictureAsync(options?: PictureOptions) {
         if (!options) {
             options = {};
@@ -128,5 +129,4 @@ export default class INatCamera extends React.Component<PropsType, StateType> {
 
 const RCTINatCameraView = requireNativeComponent('RCTINatCameraView', INatCamera, {
 });
-
 
