@@ -5,8 +5,10 @@ import android.util.Log;
 
 import org.inaturalist.inatcamera.classifier.ImageClassifier;
 import android.graphics.Bitmap;
+import java.io.File;
 import java.util.List;
 import java.io.IOException;
+import android.os.Environment;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.Arguments;
@@ -51,9 +53,11 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
         uiManager.addUIBlock(new UIBlock() {
             @Override
             public void execute(NativeViewHierarchyManager nativeViewHierarchyManager) {
-                INatCameraView cameraView = (INatCameraView) nativeViewHierarchyManager.resolveView(viewTag);
+                RNCameraView cameraView = (RNCameraView) nativeViewHierarchyManager.resolveView(viewTag);
                 try {
-                    cameraView.stopCamera(promise);
+                    cameraView.pausePreview();
+                    WritableMap result = Arguments.createMap();
+                    promise.resolve(result);
                 } catch (Exception e) {
                     promise.reject("stopCamera: Expected a Camera component");
                 }
@@ -68,9 +72,10 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
         uiManager.addUIBlock(new UIBlock() {
             @Override
             public void execute(NativeViewHierarchyManager nativeViewHierarchyManager) {
-                INatCameraView cameraView = (INatCameraView) nativeViewHierarchyManager.resolveView(viewTag);
+                RNCameraView cameraView = (RNCameraView) nativeViewHierarchyManager.resolveView(viewTag);
                 try {
-                    cameraView.takePictureAsync(options, promise);
+                    File cacheDirectory = mContext.getCacheDir();
+                    cameraView.takePicture(options, promise, cacheDirectory);
                 } catch (Exception e) {
                     promise.reject("takePictureAsync: Expected a Camera component");
                 }
@@ -85,7 +90,7 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
         uiManager.addUIBlock(new UIBlock() {
             @Override
             public void execute(NativeViewHierarchyManager nativeViewHierarchyManager) {
-                INatCameraView cameraView = (INatCameraView) nativeViewHierarchyManager.resolveView(viewTag);
+                RNCameraView cameraView = (RNCameraView) nativeViewHierarchyManager.resolveView(viewTag);
                 try {
                     cameraView.resumePreview();
                 } catch (Exception e) {
@@ -157,7 +162,7 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
         WritableArray results = Arguments.createArray();
 
         for (Prediction prediction : predictions) {
-            WritableMap map = INatCameraView.nodeToMap(prediction);
+            WritableMap map = RNCameraView.nodeToMap(prediction);
             if (map == null) continue;
 
             results.pushMap(map);
