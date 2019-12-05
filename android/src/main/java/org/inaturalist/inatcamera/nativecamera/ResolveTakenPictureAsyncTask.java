@@ -57,6 +57,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
 
     @Override
     protected WritableMap doInBackground(Void... voids) {
+        Log.d(TAG, "doInBackground");
         WritableMap response = Arguments.createMap();
         ByteArrayInputStream inputStream = null;
 
@@ -101,6 +102,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
             return response;
         }
 
+        Log.d(TAG, "doInBackground 2");
         // we need the stream only for photos from a device
         if (mBitmap == null) {
             mBitmap = BitmapFactory.decodeByteArray(mImageData, 0, mImageData.length);
@@ -226,6 +228,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                 inputStream = null;
             }
 
+            Log.d(TAG, "doInBackground 3");
             return response;
         } catch (Resources.NotFoundException e) {
             mPromise.reject(ERROR_TAG, "Documents directory of the app could not be found.", e);

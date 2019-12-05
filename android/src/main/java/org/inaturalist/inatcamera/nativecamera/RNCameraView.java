@@ -157,6 +157,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
             @Override
             public void onPictureTaken(CameraView cameraView, final byte[] data, int deviceOrientation) {
+                Log.d(TAG, "onPictureTaken");
                 Promise promise = mPictureTakenPromises.poll();
                 ReadableMap options = mPictureTakenOptions.remove(promise);
                 if (options.hasKey("fastMode") && options.getBoolean("fastMode")) {
@@ -223,9 +224,11 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     }
 
     public void takePicture(final ReadableMap options, final Promise promise, final File cacheDirectory) {
+        Log.d(TAG, "takePicture 1");
         mBgHandler.post(new Runnable() {
             @Override
             public void run() {
+                Log.d(TAG, "takePicture 2");
                 mPictureTakenPromises.add(promise);
                 mPictureTakenOptions.put(promise, options);
                 mPictureTakenDirectories.put(promise, cacheDirectory);
@@ -234,6 +237,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
                     sound.play(MediaActionSound.SHUTTER_CLICK);
                 }
                 try {
+                    Log.d(TAG, "takePicture 3");
                     RNCameraView.super.takePicture(options);
                     if (options.hasKey("pauseAfterCapture") && options.getBoolean("pauseAfterCapture")) {
                         synchronized (lock) {
