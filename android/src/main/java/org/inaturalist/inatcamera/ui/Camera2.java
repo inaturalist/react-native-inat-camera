@@ -158,6 +158,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
         @Override
         public void onPrecaptureRequired() {
+            Log.d(TAG, "onPrecaptureRequired");
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
                     CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
             setState(STATE_PRECAPTURE);
@@ -172,6 +173,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
         @Override
         public void onReady() {
+            Log.d(TAG, "onReady");
             captureStillPicture();
         }
 
@@ -849,6 +851,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         if (mStillImageReader != null) {
             mStillImageReader.close();
         }
+        Log.d(TAG, "prepareScanImageReader");
         mStillImageReader = ImageReader.newInstance(mPictureSize.getWidth(), mPictureSize.getHeight(),
                 ImageFormat.JPEG, 1);
         mStillImageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
@@ -1224,6 +1227,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * Captures a still picture.
      */
     void captureStillPicture() {
+        Log.d(TAG, "captureStillPicture");
         try {
             CaptureRequest.Builder captureRequestBuilder = mCamera.createCaptureRequest(
                     CameraDevice.TEMPLATE_STILL_CAPTURE);
@@ -1268,21 +1272,26 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 captureRequestBuilder.set(CaptureRequest.JPEG_QUALITY, (byte)quality);
             }
 
+            Log.d(TAG, "captureStillPicture 2");
             captureRequestBuilder.set(CaptureRequest.SCALER_CROP_REGION, mPreviewRequestBuilder.get(CaptureRequest.SCALER_CROP_REGION));
             // Stop preview and capture a still picture.
+            Log.d(TAG, "captureStillPicture 3");
             mCaptureSession.stopRepeating();
+            Log.d(TAG, "captureStillPicture 4");
             mCaptureSession.capture(captureRequestBuilder.build(),
                     new CameraCaptureSession.CaptureCallback() {
                         @Override
                         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                        @NonNull CaptureRequest request,
                                                        @NonNull TotalCaptureResult result) {
+                            Log.d(TAG, "captureStillPicture - onCaptureCompleted");
                             if (mCaptureCallback.getOptions().hasKey("pauseAfterCapture")
                                     && !mCaptureCallback.getOptions().getBoolean("pauseAfterCapture")) {
                                 unlockFocus();
                             }
                         }
                     }, null);
+            Log.d(TAG, "captureStillPicture 5");
         } catch (CameraAccessException e) {
             Log.e(TAG, "Cannot capture a still picture.", e);
         }
@@ -1385,6 +1394,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * capturing a still picture.
      */
     void unlockFocus() {
+        Log.d(TAG, "unlockFocus");
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                 CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
         try {
