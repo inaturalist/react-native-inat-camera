@@ -545,12 +545,14 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     void takePicture(ReadableMap options) {
-        Log.d(TAG, "takePicture");
+        Log.d(TAG, "takePicture - " + mAutoFocus);
         mCaptureCallback.setOptions(options);
 
         if (mAutoFocus) {
+            Log.d(TAG, "takePicture - lockFocus");
             lockFocus();
         } else {
+            Log.d(TAG, "takePicture - captureStillPicture");
             captureStillPicture();
         }
     }
@@ -1130,11 +1132,15 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * Locks the focus as the first step for a still image capture.
      */
     private void lockFocus() {
+        Log.d(TAG, "lockFocus");
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                 CaptureRequest.CONTROL_AF_TRIGGER_START);
         try {
+            Log.d(TAG, "lockFocus 2");
             mCaptureCallback.setState(PictureCaptureCallback.STATE_LOCKING);
+            Log.d(TAG, "lockFocus 3");
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, null);
+            Log.d(TAG, "lockFocus 4");
         } catch (CameraAccessException e) {
             Log.e(TAG, "Failed to lock focus.", e);
         }
