@@ -63,6 +63,8 @@ import android.widget.FrameLayout;
 
 public class CameraView extends FrameLayout implements OnTouchListener {
 
+    private static final String TAG = "CameraView";
+
     /** The camera device faces the opposite direction as the device's screen. */
     public static final int FACING_BACK = Constants.FACING_BACK;
 
@@ -864,6 +866,8 @@ public class CameraView extends FrameLayout implements OnTouchListener {
 
                 x = y0;
                 y = -x0 + 1;
+
+                Log.d(TAG, "Tap to focus - " + x + "/" + y);
 
                 // Set auto focus area for camera
                 setAutoFocusPointOfInterest(x, y);

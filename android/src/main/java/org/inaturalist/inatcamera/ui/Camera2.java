@@ -887,9 +887,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * <p>The result will be continuously processed in {@link #mSessionCallback}.</p>
      */
     void startCaptureSession() {
+        Log.d(TAG, "startCaptureSession 1");
         if (!isCameraOpened() || !mPreview.isReady() || mStillImageReader == null || mScanImageReader == null) {
             return;
         }
+        Log.d(TAG, "startCaptureSession 2 - " + mIsScanning);
         Size previewSize = chooseOptimalSize();
         mPreview.setBufferSize(previewSize.getWidth(), previewSize.getHeight());
         Surface surface = getPreviewSurface();
@@ -903,6 +905,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             mCamera.createCaptureSession(Arrays.asList(surface, mStillImageReader.getSurface(),
                     mScanImageReader.getSurface()), mSessionCallback, null);
         } catch (CameraAccessException e) {
+            Log.d(TAG, "startCaptureSession error " + e);
             mCallback.onMountError();
         }
     }
@@ -988,20 +991,24 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * Updates the internal state of auto-focus to {@link #mAutoFocus}.
      */
     void updateAutoFocus() {
+        Log.d(TAG, "updateAutoFocus - " + mAutoFocus);
         if (mAutoFocus) {
             int[] modes = mCameraCharacteristics.get(
                     CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
             // Auto focus is not supported
             if (modes == null || modes.length == 0 ||
                     (modes.length == 1 && modes[0] == CameraCharacteristics.CONTROL_AF_MODE_OFF)) {
+                Log.d(TAG, "updateAutoFocus 2");
                 mAutoFocus = false;
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                         CaptureRequest.CONTROL_AF_MODE_OFF);
             } else {
+                Log.d(TAG, "updateAutoFocus 3");
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                         CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
             }
         } else {
+            Log.d(TAG, "updateAutoFocus 4");
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                     CaptureRequest.CONTROL_AF_MODE_OFF);
         }
@@ -1153,12 +1160,14 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     // Much credit - https://gist.github.com/royshil/8c760c2485257c85a11cafd958548482
     void setFocusArea(float x, float y) {
+        Log.d(TAG, "setFocusArea - " + x + "/" + y + ": " + mCaptureSession);
         if (mCaptureSession == null) {
             return;
         }
         CameraCaptureSession.CaptureCallback captureCallbackHandler = new CameraCaptureSession.CaptureCallback() {
             @Override
             public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+                Log.d(TAG, "onCaptureCompleted");
                 super.onCaptureCompleted(session, request, result);
 
                 if (request.getTag() == "FOCUS_TAG") {
@@ -1173,16 +1182,19 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
             @Override
             public void onCaptureFailed(CameraCaptureSession session, CaptureRequest request, CaptureFailure failure) {
+                Log.d(TAG, "onCaptureFailed");
                 super.onCaptureFailed(session, request, failure);
                 Log.e(TAG, "Manual AF failure: " + failure);
             }
         };
 
+        Log.d(TAG, "setFocusArea 2");
         try {
             mCaptureSession.stopRepeating();
         } catch (CameraAccessException e) {
             Log.e(TAG, "Failed to manual focus.", e);
         }
+        Log.d(TAG, "setFocusArea 3");
 
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
@@ -1191,8 +1203,10 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         } catch (CameraAccessException e) {
             Log.e(TAG, "Failed to manual focus.", e);
         }
+        Log.d(TAG, "setFocusArea 4");
 
         if (isMeteringAreaAFSupported()) {
+            Log.d(TAG, "setFocusArea 5");
             MeteringRectangle focusAreaTouch = calculateFocusArea(x, y);
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusAreaTouch});
         }
@@ -1201,11 +1215,13 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
         mPreviewRequestBuilder.setTag("FOCUS_TAG");
 
+        Log.d(TAG, "setFocusArea 6");
         try {
             mCaptureSession.capture(mPreviewRequestBuilder.build(), captureCallbackHandler, null);
         } catch (CameraAccessException e) {
             Log.e(TAG, "Failed to manual focus.", e);
         }
+        Log.d(TAG, "setFocusArea 7");
     }
 
     private boolean isMeteringAreaAFSupported() {
@@ -1408,9 +1424,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             updateAutoFocus();
             updateFlash();
             if (mIsScanning) {
+                Log.d(TAG, "unlockFocus 2");
                 mImageFormat = ImageFormat.YUV_420_888;
                 startCaptureSession();
             } else {
+                Log.d(TAG, "unlockFocus 3");
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                         CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
                 mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), mCaptureCallback,
