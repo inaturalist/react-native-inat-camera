@@ -243,7 +243,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     private AspectRatio mInitialRatio;
 
-    private boolean mAutoFocus = true;
+    private boolean mAutoFocus = false;
 
     private int mFlash;
 
@@ -1132,7 +1132,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * Locks the focus as the first step for a still image capture.
      */
     private void lockFocus() {
-        Log.d(TAG, "lockFocus");
+        Log.d(TAG, "lockFocus - " + mCaptureCallback);
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                 CaptureRequest.CONTROL_AF_TRIGGER_START);
         try {
