@@ -176,8 +176,6 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
         // Initialize location client
         getLocation();
-
-        setAutoFocus(true);
     }
 
     @Override

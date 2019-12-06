@@ -674,6 +674,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     void setScanning(boolean isScanning) {
+        Log.d(TAG, "setScanning - " + isScanning);
         if (mIsScanning == isScanning) {
             return;
         }
@@ -1167,14 +1168,20 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         CameraCaptureSession.CaptureCallback captureCallbackHandler = new CameraCaptureSession.CaptureCallback() {
             @Override
             public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-                Log.d(TAG, "onCaptureCompleted");
+                Log.d(TAG, "onCaptureCompleted (from setFocusArea) 1");
                 super.onCaptureCompleted(session, request, result);
 
+                Log.d(TAG, "onCaptureCompleted (from setFocusArea) 2 - " + request.getTag());
                 if (request.getTag() == "FOCUS_TAG") {
+                    Log.d(TAG, "onCaptureCompleted (from setFocusArea) 3");
                     mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);
                     try {
-                        mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), null, null);
-                    } catch (CameraAccessException e) {
+                        mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
+                                CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
+                        mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), mCaptureCallback,
+                                null);
+                        mCaptureCallback.setState(PictureCaptureCallback.STATE_PREVIEW);
+                    } catch (Exception e) {
                         Log.e(TAG, "Failed to manual focus.", e);
                     }
                 }
@@ -1497,19 +1504,25 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         }
 
         private void process(@NonNull CaptureResult result) {
+            Log.d(TAG, "process: " + mState + ":" + result);
             switch (mState) {
                 case STATE_LOCKING: {
+                    Log.d(TAG, "process: STATE_LOCKING 1");
                     Integer af = result.get(CaptureResult.CONTROL_AF_STATE);
                     if (af == null) {
                         break;
                     }
+                    Log.d(TAG, "process: STATE_LOCKING 2: " + af);
                     if (af == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
                             af == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
                         Integer ae = result.get(CaptureResult.CONTROL_AE_STATE);
+                        Log.d(TAG, "process: STATE_LOCKING 3: " + ae);
                         if (ae == null || ae == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
+                            Log.d(TAG, "process 4");
                             setState(STATE_CAPTURING);
                             onReady();
                         } else {
+                            Log.d(TAG, "process 5");
                             setState(STATE_LOCKED);
                             onPrecaptureRequired();
                         }
@@ -1518,16 +1531,20 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 }
                 case STATE_PRECAPTURE: {
                     Integer ae = result.get(CaptureResult.CONTROL_AE_STATE);
+                    Log.d(TAG, "process: STATE_PRECAPTURE 1: " + ae);
                     if (ae == null || ae == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
                             ae == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED ||
                             ae == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
+                        Log.d(TAG, "process: STATE_PRECAPTURE 2");
                         setState(STATE_WAITING);
                     }
                     break;
                 }
                 case STATE_WAITING: {
                     Integer ae = result.get(CaptureResult.CONTROL_AE_STATE);
+                    Log.d(TAG, "process: STATE_WAITING 1: " + ae);
                     if (ae == null || ae != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
+                        Log.d(TAG, "process: STATE_WAITING 2");
                         setState(STATE_CAPTURING);
                         onReady();
                     }
