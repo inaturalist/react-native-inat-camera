@@ -243,7 +243,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     private AspectRatio mInitialRatio;
 
-    private boolean mAutoFocus = false;
+    private boolean mAutoFocus = true;
 
     private int mFlash;
 
