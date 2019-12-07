@@ -1514,6 +1514,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                     }
                     Log.d(TAG, "process: STATE_LOCKING 2: " + af);
                     if (af == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
+                            af == CaptureResult.CONTROL_AF_STATE_PASSIVE_FOCUSED ||
                             af == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
                         Integer ae = result.get(CaptureResult.CONTROL_AE_STATE);
                         Log.d(TAG, "process: STATE_LOCKING 3: " + ae);

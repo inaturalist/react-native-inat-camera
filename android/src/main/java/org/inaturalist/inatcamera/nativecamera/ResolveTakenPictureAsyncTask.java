@@ -55,6 +55,47 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
         }
     }
 
+    private String writeBitmap(WritableMap response) {
+        try {
+            // Prepare file output
+            String outputPath = RNFileUtils.getOutputFilePath(mCacheDirectory, ".jpg");
+            File imageFile = new File(outputPath);
+            imageFile.createNewFile();
+            FileOutputStream fOut = new FileOutputStream(imageFile);
+
+            // Save byte array (it is already a JPEG)
+            fOut.write(mImageData);
+
+            // get image size
+            if (mBitmap == null) {
+                mBitmap = BitmapFactory.decodeByteArray(mImageData, 0, mImageData.length);
+            }
+            if(mBitmap == null){
+                throw new IOException("Failed to decode Image bitmap.");
+            }
+
+            response.putInt("width", mBitmap.getWidth());
+            response.putInt("height", mBitmap.getHeight());
+
+            // Return file system URI
+            String fileUri = Uri.fromFile(imageFile).toString();
+            response.putString("uri", fileUri);
+
+            return outputPath;
+
+        } catch (Resources.NotFoundException e) {
+            response = null; // do not resolve
+            mPromise.reject(ERROR_TAG, "Documents directory of the app could not be found.", e);
+            e.printStackTrace();
+            return null;
+        } catch (IOException e) {
+            response = null; // do not resolve
+            mPromise.reject(ERROR_TAG, "An unknown I/O exception has occurred.", e);
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     @Override
     protected WritableMap doInBackground(Void... voids) {
         Log.d(TAG, "doInBackground");
@@ -189,10 +230,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
             response.putInt("width", mBitmap.getWidth());
             response.putInt("height", mBitmap.getHeight());
 
-            // Cache compressed image in imageStream
             Log.d(TAG, "doInBackground 13");
-            ByteArrayOutputStream imageStream = new ByteArrayOutputStream();
-            mBitmap.compress(Bitmap.CompressFormat.JPEG, getQuality(), imageStream);
             Log.d(TAG, "doInBackground 14");
 
             // Get predictions for that image
@@ -204,7 +242,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
             // Write compressed image to file in cache directory unless otherwise specified
             if (!mOptions.hasKey("doNotSave") || !mOptions.getBoolean("doNotSave")) {
                 Log.d(TAG, "doInBackground 17");
-                String filePath = writeStreamToFile(imageStream);
+                String filePath = writeBitmap(response);
                 Log.d(TAG, "doInBackground 18");
                 if (fileExifData != null) {
                     Log.d(TAG, "doInBackground 19");
@@ -238,13 +276,6 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                 response.putString("uri", fileUri);
             }
 
-            // Write base64-encoded image to the response if requested
-            if (mOptions.hasKey("base64") && mOptions.getBoolean("base64")) {
-                response.putString("base64", Base64.encodeToString(imageStream.toByteArray(), Base64.NO_WRAP));
-            }
-
-            // Cleanup
-            imageStream.close();
             if (inputStream != null) {
                 inputStream.close();
                 inputStream = null;
