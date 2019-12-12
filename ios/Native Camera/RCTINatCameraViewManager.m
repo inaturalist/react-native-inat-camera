@@ -27,6 +27,8 @@ RCT_EXPORT_VIEW_PROPERTY(onDeviceNotSupported, RCTDirectEventBlock)
 
 RCT_EXPORT_VIEW_PROPERTY(confidenceThreshold, float)
 RCT_EXPORT_VIEW_PROPERTY(taxaDetectionInterval, NSInteger)
+RCT_EXPORT_VIEW_PROPERTY(taxonomyPath, NSString)
+RCT_EXPORT_VIEW_PROPERTY(modelPath, NSString)
 
 RCT_REMAP_METHOD(takePictureAsync,
                  takePictureWithResolver:(RCTPromiseResolveBlock)resolve
@@ -51,28 +53,10 @@ RCT_REMAP_METHOD(resumePreview,
     }
 }
 
-- (UIView *)view
-{
-    NSBundle *bundle = [NSBundle mainBundle];
-    NSString *modelPath = [bundle pathForResource:@"optimized_model" ofType:@".mlmodelc"];
-    NSString *taxonomyPath = [bundle pathForResource:@"taxonomy" ofType:@".json"];
-    
-    NATCameraView *cameraView = [[NATCameraView alloc] initWithModelFile:modelPath
-                                                            taxonomyFile:taxonomyPath
-                                                                delegate:self];
-    self.cameraView = cameraView;
 
-    if (@available(iOS 11.0, *)) {
-        [cameraView setupClassifier];
-    } else {
-        [self cameraViewDeviceNotSupported:cameraView];
-    }
-    
-    if (@available(iOS 10.0, *)) {
-        [cameraView setupAVCapture];
-    } else {
-        [self cameraView:cameraView cameraError:@"Camera Not Supported Pre iOS 10"];
-    }
+- (UIView *)view {
+    NATCameraView *cameraView = [[NATCameraView alloc] initWithDelegate:self];
+    self.cameraView = cameraView;    
     
     return cameraView;
 }

@@ -15,6 +15,8 @@
 
 @interface NATCameraView () <AVCaptureVideoDataOutputSampleBufferDelegate, NATClassifierDelegate> {
     float _confidenceThreshold;
+    NSString *_taxonomyPath;
+    NSString *_modelPath;
 }
 @property AVCaptureDevice *videoDevice;
 @property AVCaptureVideoPreviewLayer *previewLayer;
@@ -26,14 +28,35 @@
 @property NATClassifier *classifier;
 @property NSDate *lastPredictionTime;
 
-@property NSString *modelFile;
-@property NSString *taxonomyFile;
-
 @property CGFloat prevZoomFactor;
 
 @end
 
 @implementation NATCameraView
+
+- (void)setTaxonomyPath:(NSString *)taxonomyPath {
+    _taxonomyPath = taxonomyPath;
+    
+    if (self.modelPath && !self.classifier) {
+        [self setupClassifier];
+    }
+}
+
+- (NSString *)taxonomyPath {
+    return _taxonomyPath;
+}
+
+- (void)setModelPath:(NSString *)modelPath {
+    _modelPath = modelPath;
+        
+    if (self.taxonomyPath && !self.classifier) {
+        [self setupClassifier];
+    }
+}
+
+- (NSString *)modelPath {
+    return _modelPath;
+}
 
 - (void)setConfidenceThreshold:(float)confidenceThreshold {
     _confidenceThreshold = confidenceThreshold;
@@ -46,13 +69,14 @@
     return _confidenceThreshold;
 }
 
-- (instancetype)initWithModelFile:(NSString *)modelFile taxonomyFile:(NSString *)taxonomyFile delegate:(id<NATCameraDelegate>)delegate {
+- (instancetype)initWithDelegate:(id<NATCameraDelegate>)delegate {
     if (self = [super initWithFrame:CGRectZero]) {
-        self.modelFile = modelFile;
-        self.taxonomyFile = taxonomyFile;
         self.delegate = delegate;
         self.prevZoomFactor = 1.0f;
     }
+    
+    
+    [self setupAVCapture];
     
     UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self
                                                                                 action:@selector(pinched:)];
