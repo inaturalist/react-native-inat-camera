@@ -15,6 +15,8 @@
 
 @interface NATCameraView () <AVCaptureVideoDataOutputSampleBufferDelegate, NATClassifierDelegate> {
     float _confidenceThreshold;
+    NSString *_taxonomyPath;
+    NSString *_modelPath;
 }
 @property AVCaptureDevice *videoDevice;
 @property AVCaptureVideoPreviewLayer *previewLayer;
@@ -26,14 +28,35 @@
 @property NATClassifier *classifier;
 @property NSDate *lastPredictionTime;
 
-@property NSString *modelFile;
-@property NSString *taxonomyFile;
-
 @property CGFloat prevZoomFactor;
 
 @end
 
 @implementation NATCameraView
+
+- (void)setTaxonomyPath:(NSString *)taxonomyPath {
+    _taxonomyPath = taxonomyPath;
+    
+    if (self.modelPath && !self.classifier) {
+        [self setupClassifier];
+    }
+}
+
+- (NSString *)taxonomyPath {
+    return _taxonomyPath;
+}
+
+- (void)setModelPath:(NSString *)modelPath {
+    _modelPath = modelPath;
+        
+    if (self.taxonomyPath && !self.classifier) {
+        [self setupClassifier];
+    }
+}
+
+- (NSString *)modelPath {
+    return _modelPath;
+}
 
 - (void)setConfidenceThreshold:(float)confidenceThreshold {
     _confidenceThreshold = confidenceThreshold;
@@ -46,13 +69,14 @@
     return _confidenceThreshold;
 }
 
-- (instancetype)initWithModelFile:(NSString *)modelFile taxonomyFile:(NSString *)taxonomyFile delegate:(id<NATCameraDelegate>)delegate {
+- (instancetype)initWithDelegate:(id<NATCameraDelegate>)delegate {
     if (self = [super initWithFrame:CGRectZero]) {
-        self.modelFile = modelFile;
-        self.taxonomyFile = taxonomyFile;
         self.delegate = delegate;
         self.prevZoomFactor = 1.0f;
     }
+    
+    
+    [self setupAVCapture];
     
     UIPinchGestureRecognizer *pinch = [[UIPinchGestureRecognizer alloc] initWithTarget:self
                                                                                 action:@selector(pinched:)];
@@ -78,26 +102,44 @@
     self.stillImageOutput = nil;
     self.classifier = nil;
     self.lastPredictionTime = nil;
-    self.modelFile = nil;
-    self.taxonomyFile = nil;
+    self.modelPath = nil;
+    self.taxonomyPath = nil;
 }
 
 - (void)setupClassifier {
-    // classifier requires coreml, ios 11
-    if (@available(iOS 11.0, *)) {
-        self.classifier = [[NATClassifier alloc] initWithModelFile:self.modelFile
-                                                       taxonmyFile:self.taxonomyFile];
-        self.classifier.delegate = self;
-        
-        // default detection interval is 1000 ms
-        self.taxaDetectionInterval = 1000;
-        
-        // start predicting right away
-        self.lastPredictionTime = [NSDate distantPast];
-    } else {
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            [self.delegate cameraViewDeviceNotSupported:self];
-        });
+    // don't do this more than once at a time
+    @synchronized (self) {
+        if (self.taxonomyPath && self.modelPath) {
+            // classifier requires coreml, ios 11
+            if (@available(iOS 11.0, *)) {
+                self.classifier = [[NATClassifier alloc] initWithModelFile:self.modelPath
+                                                               taxonmyFile:self.taxonomyPath
+                                                                  delegate:self];
+                
+                // default detection interval is 1000 ms
+                self.taxaDetectionInterval = 1000;
+                
+                // start predicting right away
+                self.lastPredictionTime = [NSDate distantPast];
+            } else {
+                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                    [self.delegate cameraViewDeviceNotSupported:self];
+                });
+            }
+        } else {
+            NSString *errString = nil;
+            if (!self.taxonomyPath && !self.modelPath) {
+                errString = @"Taxonomy and model files are missing.";
+            } else if (!self.taxonomyPath) {
+                errString = @"Taxonomy file is missing.";
+            } else if (!self.modelPath) {
+                errString = @"Model file is missing.";
+            }
+            
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                [self.delegate cameraView:self onClassifierError:errString];
+            });
+        }
     }
 }
 

@@ -22,7 +22,9 @@ typedef void(^BranchClassificationHandler)(NSArray *topBranch, NSError *error);
 @property float threshold;
 @property (readonly) NSArray *bestRecentBranch;
 
-- (instancetype)initWithModelFile:(NSString *)modelPath taxonmyFile:(NSString *)taxonomyPath;
+- (instancetype)initWithModelFile:(NSString *)modelPath
+                      taxonmyFile:(NSString *)taxonomyPath
+                         delegate:(id <NATClassifierDelegate>)delegate;
 - (void)classifyFrame:(CVImageBufferRef)pixelBuf orientation:(CGImagePropertyOrientation)orientation;
 - (void)classifyImageData:(NSData *)data orientation:(CGImagePropertyOrientation)orientation handler:(BranchClassificationHandler)handler;
 - (void)classifyImageData:(NSData *)data handler:(BranchClassificationHandler)handler;

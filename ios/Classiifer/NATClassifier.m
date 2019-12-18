@@ -29,8 +29,12 @@
 
 @implementation NATClassifier
 
-- (instancetype)initWithModelFile:(NSString *)modelPath taxonmyFile:(NSString *)taxonomyPath {
+- (instancetype)initWithModelFile:(NSString *)modelPath
+                      taxonmyFile:(NSString *)taxonomyPath
+                         delegate:(id<NATClassifierDelegate>)delegate {
+    
     if (self = [super init]) {
+        self.delegate = delegate;
         self.modelPath = modelPath;
         self.taxonomy = [[NATTaxonomy alloc] initWithTaxonomyFile:taxonomyPath];
         
@@ -41,6 +45,7 @@
         
         self.recentTopBranches = [NSMutableArray array];
         self.recentTopPredictions = [NSMutableArray array];
+
     }
     
     return self;
