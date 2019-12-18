@@ -47,6 +47,7 @@ import android.widget.FrameLayout;
 import android.graphics.SurfaceTexture;
 import android.view.View.OnTouchListener;
 import android.util.Log;
+import android.app.Activity;
 
 import com.facebook.react.bridge.ReadableMap;
 
@@ -299,7 +300,12 @@ public class CameraView extends FrameLayout implements OnTouchListener {
     public void start() {
         if (!mImpl.start()) {
             if (mImpl.getView() != null) {
-                this.removeView(mImpl.getView());
+                ((Activity)mContext).runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        CameraView.this.removeView(mImpl.getView());
+                    }
+                });
             }
         }
     }

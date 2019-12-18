@@ -13,6 +13,8 @@ import android.os.AsyncTask;
 import com.facebook.react.bridge.*;
 import com.facebook.react.uimanager.ThemedReactContext;
 import org.inaturalist.inatcamera.ui.CameraView;
+import org.inaturalist.inatcamera.ui.Constants;
+import org.inaturalist.inatcamera.ui.AspectRatio;
 import org.inaturalist.inatcamera.classifier.ImageClassifier;
 import android.graphics.Bitmap;
 import org.inaturalist.inatcamera.classifier.Prediction;
@@ -186,7 +188,9 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
         }
         float width = right - left;
         float height = bottom - top;
-        float ratio = getAspectRatio().toFloat();
+        AspectRatio aspectRatio = getAspectRatio();
+        if (aspectRatio == null) aspectRatio = Constants.DEFAULT_ASPECT_RATIO;
+        float ratio = aspectRatio.toFloat();
         int orientation = getResources().getConfiguration().orientation;
         int correctHeight;
         int correctWidth;
