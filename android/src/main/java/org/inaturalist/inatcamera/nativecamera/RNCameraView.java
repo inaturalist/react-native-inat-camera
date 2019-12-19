@@ -272,7 +272,6 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
                     if ((mIsPaused && !isCameraOpened()) || mIsNew) {
                         mIsPaused = false;
                         mIsNew = false;
-                        // TODO - this is where is crashes
                         try {
                             start();
                         } catch (RuntimeException exc) {

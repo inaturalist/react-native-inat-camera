@@ -1258,6 +1258,10 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
     void captureStillPicture() {
         Log.d(TAG, "captureStillPicture");
         try {
+            if (mCamera == null) {
+                Log.e(TAG, "captureStillPicture - mCamera is null");
+                return;
+            }
             CaptureRequest.Builder captureRequestBuilder = mCamera.createCaptureRequest(
                     CameraDevice.TEMPLATE_STILL_CAPTURE);
             if (mIsScanning) {
