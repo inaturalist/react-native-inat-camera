@@ -272,7 +272,17 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
                     if ((mIsPaused && !isCameraOpened()) || mIsNew) {
                         mIsPaused = false;
                         mIsNew = false;
-                        start();
+                        // TODO - this is where is crashes
+                        try {
+                            start();
+                        } catch (RuntimeException exc) {
+                            WritableMap event = Arguments.createMap();
+                            event.putString("error", exc.getMessage());
+                            mThemedReactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+                                    getId(),
+                                    EVENT_NAME_ON_CAMERA_ERROR,
+                                    event);
+                        }
                     }
                 }
             });
