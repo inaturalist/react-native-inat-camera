@@ -37,7 +37,7 @@
 - (void)setTaxonomyPath:(NSString *)taxonomyPath {
     _taxonomyPath = taxonomyPath;
     
-    if (self.modelPath && !self.classifier) {
+    if (taxonomyPath && self.modelPath && !self.classifier) {
         [self setupClassifier];
     }
 }
@@ -49,7 +49,7 @@
 - (void)setModelPath:(NSString *)modelPath {
     _modelPath = modelPath;
         
-    if (self.taxonomyPath && !self.classifier) {
+    if (modelPath && self.taxonomyPath && !self.classifier) {
         [self setupClassifier];
     }
 }
@@ -102,8 +102,6 @@
     self.stillImageOutput = nil;
     self.classifier = nil;
     self.lastPredictionTime = nil;
-    self.modelPath = nil;
-    self.taxonomyPath = nil;
 }
 
 - (void)setupClassifier {
@@ -122,7 +120,7 @@
                 // start predicting right away
                 self.lastPredictionTime = [NSDate distantPast];
             } else {
-                dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                dispatch_async(dispatch_get_main_queue(), ^{
                     [self.delegate cameraViewDeviceNotSupported:self];
                 });
             }
@@ -136,7 +134,7 @@
                 errString = @"Model file is missing.";
             }
             
-            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0f * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            dispatch_async(dispatch_get_main_queue(), ^{
                 [self.delegate cameraView:self onClassifierError:errString];
             });
         }
