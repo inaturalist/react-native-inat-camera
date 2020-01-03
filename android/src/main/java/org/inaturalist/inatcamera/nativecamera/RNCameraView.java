@@ -161,6 +161,10 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
             public void onPictureTaken(CameraView cameraView, final byte[] data, int deviceOrientation) {
                 Log.d(TAG, "onPictureTaken");
                 Promise promise = mPictureTakenPromises.poll();
+                if (promise == null) {
+                    promise.resolve(null);
+                    return;
+                }
                 ReadableMap options = mPictureTakenOptions.remove(promise);
                 if (options.hasKey("fastMode") && options.getBoolean("fastMode")) {
                     promise.resolve(null);

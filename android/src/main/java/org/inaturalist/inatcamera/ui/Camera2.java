@@ -159,6 +159,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         @Override
         public void onPrecaptureRequired() {
             Log.d(TAG, "onPrecaptureRequired");
+            if (mCaptureSession == null) {
+                Log.e(TAG, "mCaptureSession is null - exiting");
+                return;
+            }
+
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
                     CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_START);
             setState(STATE_PRECAPTURE);
@@ -1327,6 +1332,8 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             Log.d(TAG, "captureStillPicture 5");
         } catch (CameraAccessException e) {
             Log.e(TAG, "Cannot capture a still picture.", e);
+        } catch (IllegalStateException e) {
+            Log.e(TAG, "Cannot capture still picture - Camera is probably closed", e);
         }
     }
 
