@@ -673,9 +673,9 @@ public class CameraView extends FrameLayout implements OnTouchListener {
         }
 
         @Override
-        public void onMountError() {
+        public void onMountError(Exception exc) {
             for (Callback callback : mCallbacks) {
-                callback.onMountError(CameraView.this);
+                callback.onMountError(CameraView.this, exc);
             }
         }
 
@@ -806,7 +806,7 @@ public class CameraView extends FrameLayout implements OnTouchListener {
         public void onFramePreview(CameraView cameraView, byte[] data, int width, int height, int orientation) {
         }
 
-        public void onMountError(CameraView cameraView) {}
+        public void onMountError(CameraView cameraView, Exception exc) {}
     }
 
     private float getFingerSpacing(MotionEvent event) {

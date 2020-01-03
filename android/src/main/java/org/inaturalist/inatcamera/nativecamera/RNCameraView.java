@@ -33,6 +33,8 @@ import android.location.Criteria;
 import android.os.Bundle;
 import android.content.Context;
 import com.google.android.gms.common.ConnectionResult;
+import java.io.StringWriter;
+import java.io.PrintWriter;
 
 import java.io.File;
 import java.io.IOException;
@@ -153,8 +155,13 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
         addCallback(new Callback() {
             @Override
-            public void onMountError(CameraView cameraView) {
-                onCameraError("Error obtaining camera");
+            public void onMountError(CameraView cameraView, Exception exc) {
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                exc.printStackTrace(pw);
+                String stackTrace = sw.toString(); // Stack trace as a string
+
+                onCameraError(stackTrace);
             }
 
             @Override

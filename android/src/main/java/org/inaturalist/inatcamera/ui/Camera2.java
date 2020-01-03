@@ -912,7 +912,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                     mScanImageReader.getSurface()), mSessionCallback, null);
         } catch (CameraAccessException e) {
             Log.d(TAG, "startCaptureSession error " + e);
-            mCallback.onMountError();
+            mCallback.onMountError(e);
         }
     }
 
