@@ -300,12 +300,14 @@ public class CameraView extends FrameLayout implements OnTouchListener {
     public void start() {
         if (!mImpl.start()) {
             if (mImpl.getView() != null) {
-                ((Activity)mContext).runOnUiThread(new Runnable() {
+                Handler mainHandler = new Handler(mContext.getMainLooper());
+                Runnable runnable = new Runnable() {
                     @Override
                     public void run() {
                         CameraView.this.removeView(mImpl.getView());
                     }
-                });
+                };
+                mainHandler.post(runnable);
             }
         }
     }
