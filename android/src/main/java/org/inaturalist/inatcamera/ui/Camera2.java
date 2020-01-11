@@ -123,6 +123,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             if (mCamera == null) {
                 return;
             }
+            if (mPreviewRequestBuilder == null) {
+                Log.e(TAG, "onConfigured - mPreviewRequestBuilder is null");
+                return;
+            }
+
             mCaptureSession = session;
             mInitialCropRegion = mPreviewRequestBuilder.get(CaptureRequest.SCALER_CROP_REGION);
             updateAutoFocus();
@@ -159,7 +164,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         @Override
         public void onPrecaptureRequired() {
             Log.d(TAG, "onPrecaptureRequired");
-            if (mCaptureSession == null) {
+            if (mCaptureSession == null || mPreviewRequestBuilder == null) {
                 Log.e(TAG, "mCaptureSession is null - exiting");
                 return;
             }
@@ -613,6 +618,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         if (mFocusDepth == value) {
             return;
         }
+        if (mPreviewRequestBuilder == null) {
+            Log.e(TAG, "setFocusDepth - mPreviewRequestBuilder is null");
+            return;
+        }
+
         float saved = mFocusDepth;
         mFocusDepth = value;
         if (mCaptureSession != null) {
@@ -636,6 +646,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         if (mZoom == zoom) {
             return;
         }
+        if (mPreviewRequestBuilder == null) {
+            Log.e(TAG, "setZoom - mPreviewRequestBuilder is null");
+            return;
+        }
+
         float saved = mZoom;
         mZoom = zoom;
         if (mCaptureSession != null) {
@@ -659,6 +674,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         if (mWhiteBalance == whiteBalance) {
             return;
         }
+        if (mPreviewRequestBuilder == null) {
+            Log.e(TAG, "setWhiteBalance - mPreviewRequestBuilder is null");
+            return;
+        }
+
         int saved = mWhiteBalance;
         mWhiteBalance = whiteBalance;
         if (mCaptureSession != null) {
@@ -998,6 +1018,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      */
     void updateAutoFocus() {
         Log.d(TAG, "updateAutoFocus - " + mAutoFocus);
+        if (mPreviewRequestBuilder == null) {
+            Log.e(TAG, "updateAutoFocus - mPreviewRequestBuilder is null");
+            return;
+        }
+
         if (mAutoFocus) {
             int[] modes = mCameraCharacteristics.get(
                     CameraCharacteristics.CONTROL_AF_AVAILABLE_MODES);
@@ -1024,6 +1049,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * Updates the internal state of flash to {@link #mFlash}.
      */
     void updateFlash() {
+        if (mPreviewRequestBuilder == null) {
+            Log.e(TAG, "updateFlash - mPreviewRequestBuilder is null");
+            return;
+        }
+
         switch (mFlash) {
             case Constants.FLASH_OFF:
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_MODE,
@@ -1065,6 +1095,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         if (mAutoFocus) {
             return;
         }
+        if (mPreviewRequestBuilder == null) {
+            Log.e(TAG, "updateFocusDepth - mPreviewRequestBuilder is null");
+            return;
+        }
+
         Float minimumLens = mCameraCharacteristics.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE);
         if (minimumLens == null) {
             throw new NullPointerException("Unexpected state: LENS_INFO_MINIMUM_FOCUS_DISTANCE null");
@@ -1081,6 +1116,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * Updates the internal state of zoom to {@link #mZoom}.
      */
     void updateZoom() {
+        if (mPreviewRequestBuilder == null) {
+            Log.e(TAG, "updateZoom - mPreviewRequestBuilder is null");
+            return;
+        }
+
         float maxZoom = mCameraCharacteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
         float scaledZoom = mZoom * (maxZoom - 1.0f) + 1.0f;
         Rect currentPreview = mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
@@ -1113,6 +1153,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * Updates the internal state of white balance to {@link #mWhiteBalance}.
      */
     void updateWhiteBalance() {
+        if (mPreviewRequestBuilder == null) {
+            Log.e(TAG, "updateWhiteBalance - mPreviewRequestBuilder is null");
+            return;
+        }
+
         switch (mWhiteBalance) {
             case Constants.WB_AUTO:
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AWB_MODE,
@@ -1145,6 +1190,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * Locks the focus as the first step for a still image capture.
      */
     private void lockFocus() {
+        if (mPreviewRequestBuilder == null) {
+            Log.e(TAG, "locaFocus - mPreviewRequestBuilder is null");
+            return;
+        }
+
         Log.d(TAG, "lockFocus - " + mCaptureCallback);
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                 CaptureRequest.CONTROL_AF_TRIGGER_START);
@@ -1170,11 +1220,21 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         if (mCaptureSession == null) {
             return;
         }
+        if (mPreviewRequestBuilder == null) {
+            Log.e(TAG, "setFocusArea - mPreviewRequestBuilder is null");
+            return;
+        }
+
         CameraCaptureSession.CaptureCallback captureCallbackHandler = new CameraCaptureSession.CaptureCallback() {
             @Override
             public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
                 Log.d(TAG, "onCaptureCompleted (from setFocusArea) 1");
                 super.onCaptureCompleted(session, request, result);
+
+                if (mPreviewRequestBuilder == null) {
+                    Log.e(TAG, "onCaptureCompleted - mPreviewRequestBuilder is null");
+                    return;
+                }
 
                 Log.d(TAG, "onCaptureCompleted (from setFocusArea) 2 - " + request.getTag());
                 if (request.getTag() == "FOCUS_TAG") {
@@ -1267,6 +1327,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 Log.e(TAG, "captureStillPicture - mCamera is null");
                 return;
             }
+            if (mPreviewRequestBuilder == null) {
+                Log.e(TAG, "captureStillPicture - mPreviewRequestBuilder is null");
+                return;
+            }
+
             CaptureRequest.Builder captureRequestBuilder = mCamera.createCaptureRequest(
                     CameraDevice.TEMPLATE_STILL_CAPTURE);
             if (mIsScanning) {
@@ -1435,6 +1500,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      */
     void unlockFocus() {
         Log.d(TAG, "unlockFocus");
+        if (mPreviewRequestBuilder == null) {
+            Log.e(TAG, "unlockFocus - mPreviewRequestBuilder is null");
+            return;
+        }
+
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                 CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
         try {
