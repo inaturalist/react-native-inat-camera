@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import timber.log.*;
 
 public class RNCameraView extends CameraView implements LifecycleEventListener, PictureSavedDelegate {
     private static final String TAG = "RNCameraView";
@@ -153,6 +154,8 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
         mThemedReactContext = themedReactContext;
         themedReactContext.addLifecycleEventListener(this);
 
+        Timber.plant(new LogEventTree(themedReactContext, this));
+
         addCallback(new Callback() {
             @Override
             public void onMountError(CameraView cameraView, Exception exc) {
@@ -166,7 +169,8 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
             @Override
             public void onPictureTaken(CameraView cameraView, final byte[] data, int deviceOrientation) {
-                Log.d(TAG, "onPictureTaken");
+                Timber.tag(TAG).d("onPictureTaken");
+
                 Promise promise = mPictureTakenPromises.poll();
                 if (promise == null) {
                     promise.resolve(null);
@@ -239,11 +243,11 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     }
 
     public void takePicture(final ReadableMap options, final Promise promise, final File cacheDirectory) {
-        Log.d(TAG, "takePicture 1");
+        Timber.tag(TAG).d("takePicture 1");
         mBgHandler.post(new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG, "takePicture 2");
+                Timber.tag(TAG).d("takePicture 2");
                 mPictureTakenPromises.add(promise);
                 mPictureTakenOptions.put(promise, options);
                 mPictureTakenDirectories.put(promise, cacheDirectory);
@@ -252,7 +256,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
                     sound.play(MediaActionSound.SHUTTER_CLICK);
                 }
                 try {
-                    Log.d(TAG, "takePicture 3");
+                    Timber.tag(TAG).d("takePicture 3");
                     RNCameraView.super.takePicture(options);
                     if (options.hasKey("pauseAfterCapture") && options.getBoolean("pauseAfterCapture")) {
                         synchronized (lock) {
@@ -310,7 +314,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
         mDeviceSupported = (reason == REASON_DEVICE_SUPPORTED);
 
         if (!mDeviceSupported) {
-            Log.w(TAG, "Device not supported - not running classifier");
+            Timber.tag(TAG).w("Device not supported - not running classifier");
 
             onDeviceNotSupported(deviceNotSupportedReasonToString(reason));
 
@@ -325,12 +329,12 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
                 onClassifierError("Failed to initialize an image mClassifier: " + e.getMessage());
             } catch (OutOfMemoryError e) {
                 e.printStackTrace();
-                Log.w(TAG, "Out of memory - Device not supported - classifier failed to load - " + e);
+                Timber.tag(TAG).w("Out of memory - Device not supported - classifier failed to load - " + e);
                 onDeviceNotSupported(deviceNotSupportedReasonToString(REASON_NOT_ENOUGH_MEMORY));
                 return;
             } catch (Exception e) {
                 e.printStackTrace();
-                Log.w(TAG, "Other type of exception - Device not supported - classifier failed to load - " + e);
+                Timber.tag(TAG).w("Other type of exception - Device not supported - classifier failed to load - " + e);
                 onDeviceNotSupported(deviceNotSupportedReasonToString(REASON_DEVICE_NOT_SUPPORTED));
                 return;
             }
@@ -438,7 +442,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
         Bitmap bitmap = textureView.getBitmap(ImageClassifier.DIM_IMG_SIZE_X, ImageClassifier.DIM_IMG_SIZE_Y);
 
         if (bitmap == null) {
-            Log.e(TAG, "Null input bitmap");
+            Timber.tag(TAG).e("Null input bitmap");
             return;
         }
 
@@ -462,7 +466,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     /** Retrieves predictions for a single frame */
     public List<Prediction> getPredictionsForImage(Bitmap bitmap) {
         if (mClassifier == null) {
-            Log.e(TAG, "getPredictionsForImage - classifier is null!");
+            Timber.tag(TAG).e("getPredictionsForImage - classifier is null!");
             return new ArrayList<Prediction>();
         }
 
@@ -518,7 +522,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     }
 
     void onCameraError(String error) {
-        Log.e(TAG, "onCameraError: " + error);
+        Timber.tag(TAG).e("onCameraError: " + error);
 
         if (System.currentTimeMillis() - mLastErrorTime < 5000) {
             // Make sure we don't "bombard" the React Native code with too many callbacks (slows
@@ -537,7 +541,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     }
 
     void onCameraPermissionMissing() {
-        Log.e(TAG, "onCameraPermissionMissing");
+        Timber.tag(TAG).e("onCameraPermissionMissing");
         WritableMap event = Arguments.createMap();
 
         mThemedReactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
@@ -547,7 +551,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     }
 
     void onClassifierError(String error) {
-        Log.e(TAG, "onClassifierError: " + error);
+        Timber.tag(TAG).e("onClassifierError: " + error);
 
         if (System.currentTimeMillis() - mLastErrorTime < 5000) {
             // Make sure we don't "bombard" the React Native code with too many callbacks (slows
@@ -566,7 +570,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     }
 
     void onDeviceNotSupported(String reason) {
-        Log.e(TAG, "onDeviceNotSupported: " + reason);
+        Timber.tag(TAG).e("onDeviceNotSupported: " + reason);
 
         WritableMap event = Arguments.createMap();
         event.putString("reason", reason);
@@ -694,7 +698,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
 
     private Location getLocationFromGPS() {
-        Log.d(TAG, "getLocationFromGPS");
+        Timber.tag(TAG).d("getLocationFromGPS");
 
         LocationManager locationManager = (LocationManager) mThemedReactContext.getSystemService(Context.LOCATION_SERVICE);
         Criteria criteria = new Criteria();
@@ -702,7 +706,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
         if (provider == null) return null;
 
         Location location = locationManager.getLastKnownLocation(provider);
-        Log.d(TAG, "getLocationFromGPS: " + location);
+        Timber.tag(TAG).d("getLocationFromGPS: " + location);
 
         return location;
     }
@@ -710,7 +714,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     private Location getLastKnownLocationFromClient() {
         Location location = null;
 
-        Log.d(TAG, "getLastKnownLocationFromClient");
+        Timber.tag(TAG).d("getLastKnownLocationFromClient");
 
         try {
             location = LocationServices.FusedLocationApi.getLastLocation(mLocationClient);
@@ -718,7 +722,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
             ex.printStackTrace();
         }
 
-        Log.d(TAG, "getLastKnownLocationFromClient: " + location);
+        Timber.tag(TAG).d("getLastKnownLocationFromClient: " + location);
         if (location == null) {
             // Failed - try and return last place using GPS
             return getLocationFromGPS();
@@ -730,25 +734,25 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     public Location getLocation() {
         int resultCode = GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(mThemedReactContext);
 
-        Log.d(TAG, "getLocation: isAvailable = " + resultCode);
+        Timber.tag(TAG).d("getLocation: isAvailable = " + resultCode);
 
 
         if (resultCode == ConnectionResult.SUCCESS) {
-            Log.d(TAG, "getLocation: Connected already");
+            Timber.tag(TAG).d("getLocation: Connected already");
             // User Google Play services if available
             if ((mLocationClient != null) && (mLocationClient.isConnected())) {
                 // Location client already initialized and connected - use it
                 return getLastKnownLocationFromClient();
             } else {
                 // Connect to the place services
-                Log.d(TAG, "getLocation: Connecting to client");
+                Timber.tag(TAG).d("getLocation: Connecting to client");
                 mLocationClient = new GoogleApiClient.Builder(mThemedReactContext)
                         .addApi(LocationServices.API)
                         .addConnectionCallbacks(new ConnectionCallbacks() {
                             @Override
                             public void onConnected(Bundle bundle) {
                                 // Connected successfully
-                                Log.d(TAG, "getLocation: Connected");
+                                Timber.tag(TAG).d("getLocation: Connected");
                             }
 
                             @Override
@@ -757,7 +761,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
                         .addOnConnectionFailedListener(new OnConnectionFailedListener() {
                             @Override
                             public void onConnectionFailed(ConnectionResult connectionResult) {
-                                Log.d(TAG, "getLocation: Connection failed");
+                                Timber.tag(TAG).d("getLocation: Connection failed");
                                 mLocationClient.disconnect();
                             }
                         })
@@ -768,7 +772,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
             }
 
         } else {
-            Log.d(TAG, "getLocation: Getting from GPS");
+            Timber.tag(TAG).d("getLocation: Getting from GPS");
             // Use GPS alone for place
             return getLocationFromGPS();
         }

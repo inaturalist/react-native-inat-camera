@@ -25,6 +25,8 @@ import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.bridge.Promise;
 import android.graphics.BitmapFactory;
 import org.inaturalist.inatcamera.classifier.Prediction;
+import timber.log.*;
+import com.facebook.react.uimanager.events.RCTEventEmitter;
 
 public class INatCameraModule extends ReactContextBaseJavaModule {
     private static final String TAG = "INatCameraModule";
@@ -38,6 +40,8 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
     public INatCameraModule(ReactApplicationContext reactContext) {
         super(reactContext);
         mContext = reactContext;
+
+        Timber.plant(new Timber.DebugTree());
     }
 
     @Override
@@ -67,15 +71,15 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void takePictureAsync(final ReadableMap options, final int viewTag, final Promise promise) {
-        Log.d(TAG, "takePictureAsync 1");
+        Timber.tag(TAG).d("takePictureAsync 1");
         final ReactApplicationContext context = getReactApplicationContext();
         UIManagerModule uiManager = context.getNativeModule(UIManagerModule.class);
         uiManager.addUIBlock(new UIBlock() {
             @Override
             public void execute(NativeViewHierarchyManager nativeViewHierarchyManager) {
-                Log.d(TAG, "takePictureAsync 2");
+                Timber.tag(TAG).d("takePictureAsync 2");
                 RNCameraView cameraView = (RNCameraView) nativeViewHierarchyManager.resolveView(viewTag);
-                Log.d(TAG, "takePictureAsync 3 - " + cameraView);
+                Timber.tag(TAG).d("takePictureAsync 3 - " + cameraView);
                 try {
                     File cacheDirectory = mContext.getCacheDir();
                     cameraView.takePicture(options, promise, cacheDirectory);
@@ -125,12 +129,12 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
             return;
         } catch (OutOfMemoryError e) {
             e.printStackTrace();
-            Log.w(TAG, "Out of memory - Device not supported - classifier failed to load - " + e);
+            Timber.tag(TAG).w("Out of memory - Device not supported - classifier failed to load - " + e);
             promise.reject("E_OUT_OF_MEMORY", "Out of memory");
             return;
         } catch (Exception e) {
             e.printStackTrace();
-            Log.w(TAG, "Other type of exception - Device not supported - classifier failed to load - " + e);
+            Timber.tag(TAG).w("Other type of exception - Device not supported - classifier failed to load - " + e);
             promise.reject("E_UNSUPPORTED_DEVICE", "Android version is too old - needs to be at least 6.0");
             return;
         }

@@ -59,7 +59,9 @@ public class INatCameraViewManager extends SimpleViewManager<RNCameraView> {
                 RNCameraView.EVENT_NAME_ON_CLASSIFIER_ERROR,
                 (Object) MapBuilder.of("registrationName", RNCameraView.EVENT_NAME_ON_CLASSIFIER_ERROR),
                 RNCameraView.EVENT_NAME_ON_DEVICE_NOT_SUPPORTED,
-                (Object) MapBuilder.of("registrationName", RNCameraView.EVENT_NAME_ON_DEVICE_NOT_SUPPORTED)
+                (Object) MapBuilder.of("registrationName", RNCameraView.EVENT_NAME_ON_DEVICE_NOT_SUPPORTED),
+                LogEventTree.EVENT_NAME_ON_LOG,
+                (Object) MapBuilder.of("registrationName", LogEventTree.EVENT_NAME_ON_LOG)
         );
     }
 

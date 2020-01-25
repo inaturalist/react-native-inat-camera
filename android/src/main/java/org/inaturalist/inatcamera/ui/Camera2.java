@@ -16,6 +16,7 @@
 
 package org.inaturalist.inatcamera.ui;
 
+import timber.log.*;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
@@ -109,7 +110,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
         @Override
         public void onError(@NonNull CameraDevice camera, int error) {
-            Log.e(TAG, "onError: " + camera.getId() + " (" + error + ")");
+            Timber.tag(TAG).e("onError: " + camera.getId() + " (" + error + ")");
             mCamera = null;
         }
 
@@ -124,7 +125,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 return;
             }
             if (mPreviewRequestBuilder == null) {
-                Log.e(TAG, "onConfigured - mPreviewRequestBuilder is null");
+                Timber.tag(TAG).e("onConfigured - mPreviewRequestBuilder is null");
                 return;
             }
 
@@ -139,15 +140,15 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(),
                         mCaptureCallback, null);
             } catch (CameraAccessException e) {
-                Log.e(TAG, "Failed to start camera preview because it couldn't access camera", e);
+                Timber.tag(TAG).e("Failed to start camera preview because it couldn't access camera", e);
             } catch (IllegalStateException e) {
-                Log.e(TAG, "Failed to start camera preview.", e);
+                Timber.tag(TAG).e("Failed to start camera preview.", e);
             }
         }
 
         @Override
         public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-            Log.e(TAG, "Failed to configure capture session.");
+            Timber.tag(TAG).e("Failed to configure capture session.");
         }
 
         @Override
@@ -163,9 +164,9 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
         @Override
         public void onPrecaptureRequired() {
-            Log.d(TAG, "onPrecaptureRequired");
+            Timber.tag(TAG).d("onPrecaptureRequired");
             if (mCaptureSession == null || mPreviewRequestBuilder == null) {
-                Log.e(TAG, "mCaptureSession is null - exiting");
+                Timber.tag(TAG).e("mCaptureSession is null - exiting");
                 return;
             }
 
@@ -177,13 +178,13 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
                         CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
             } catch (CameraAccessException e) {
-                Log.e(TAG, "Failed to run precapture sequence.", e);
+                Timber.tag(TAG).e("Failed to run precapture sequence.", e);
             }
         }
 
         @Override
         public void onReady() {
-            Log.d(TAG, "onReady");
+            Timber.tag(TAG).d("onReady");
             captureStillPicture();
         }
 
@@ -194,7 +195,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
         @Override
         public void onImageAvailable(ImageReader reader) {
-            Log.d(TAG, "onImageAvailable");
+            Timber.tag(TAG).d("onImageAvailable");
             try (Image image = reader.acquireNextImage()) {
                 Image.Plane[] planes = image.getPlanes();
                 if (planes.length > 0) {
@@ -203,7 +204,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                     buffer.get(data);
                     if (image.getFormat() == ImageFormat.JPEG) {
                         // @TODO: implement deviceOrientation
-                        Log.d(TAG, "onImageAvailable 2");
+                        Timber.tag(TAG).d("onImageAvailable 2");
                         mCallback.onPictureTaken(data, 0);
                     } else {
                         mCallback.onFramePreview(data, image.getWidth(), image.getHeight(), mDisplayOrientation);
@@ -555,14 +556,14 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     void takePicture(ReadableMap options) {
-        Log.d(TAG, "takePicture - " + mAutoFocus);
+        Timber.tag(TAG).d("takePicture - " + mAutoFocus);
         mCaptureCallback.setOptions(options);
 
         if (mAutoFocus) {
-            Log.d(TAG, "takePicture - lockFocus");
+            Timber.tag(TAG).d("takePicture - lockFocus");
             lockFocus();
         } else {
-            Log.d(TAG, "takePicture - captureStillPicture");
+            Timber.tag(TAG).d("takePicture - captureStillPicture");
             captureStillPicture();
         }
     }
@@ -619,7 +620,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             return;
         }
         if (mPreviewRequestBuilder == null) {
-            Log.e(TAG, "setFocusDepth - mPreviewRequestBuilder is null");
+            Timber.tag(TAG).e("setFocusDepth - mPreviewRequestBuilder is null");
             return;
         }
 
@@ -647,7 +648,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             return;
         }
         if (mPreviewRequestBuilder == null) {
-            Log.e(TAG, "setZoom - mPreviewRequestBuilder is null");
+            Timber.tag(TAG).e("setZoom - mPreviewRequestBuilder is null");
             return;
         }
 
@@ -675,7 +676,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             return;
         }
         if (mPreviewRequestBuilder == null) {
-            Log.e(TAG, "setWhiteBalance - mPreviewRequestBuilder is null");
+            Timber.tag(TAG).e("setWhiteBalance - mPreviewRequestBuilder is null");
             return;
         }
 
@@ -699,7 +700,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     void setScanning(boolean isScanning) {
-        Log.d(TAG, "setScanning - " + isScanning);
+        Timber.tag(TAG).d("setScanning - " + isScanning);
         if (mIsScanning == isScanning) {
             return;
         }
@@ -879,7 +880,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         if (mStillImageReader != null) {
             mStillImageReader.close();
         }
-        Log.d(TAG, "prepareScanImageReader");
+        Timber.tag(TAG).d("prepareScanImageReader");
         mStillImageReader = ImageReader.newInstance(mPictureSize.getWidth(), mPictureSize.getHeight(),
                 ImageFormat.JPEG, 1);
         mStillImageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
@@ -913,11 +914,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * <p>The result will be continuously processed in {@link #mSessionCallback}.</p>
      */
     void startCaptureSession() {
-        Log.d(TAG, "startCaptureSession 1");
+        Timber.tag(TAG).d("startCaptureSession 1");
         if (!isCameraOpened() || !mPreview.isReady() || mStillImageReader == null || mScanImageReader == null) {
             return;
         }
-        Log.d(TAG, "startCaptureSession 2 - " + mIsScanning);
+        Timber.tag(TAG).d("startCaptureSession 2 - " + mIsScanning);
         Size previewSize = chooseOptimalSize();
         mPreview.setBufferSize(previewSize.getWidth(), previewSize.getHeight());
         Surface surface = getPreviewSurface();
@@ -931,7 +932,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             mCamera.createCaptureSession(Arrays.asList(surface, mStillImageReader.getSurface(),
                     mScanImageReader.getSurface()), mSessionCallback, null);
         } catch (CameraAccessException e) {
-            Log.d(TAG, "startCaptureSession error " + e);
+            Timber.tag(TAG).d("startCaptureSession error " + e);
             mCallback.onMountError(e);
         }
     }
@@ -1017,9 +1018,9 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * Updates the internal state of auto-focus to {@link #mAutoFocus}.
      */
     void updateAutoFocus() {
-        Log.d(TAG, "updateAutoFocus - " + mAutoFocus);
+        Timber.tag(TAG).d("updateAutoFocus - " + mAutoFocus);
         if (mPreviewRequestBuilder == null) {
-            Log.e(TAG, "updateAutoFocus - mPreviewRequestBuilder is null");
+            Timber.tag(TAG).e("updateAutoFocus - mPreviewRequestBuilder is null");
             return;
         }
 
@@ -1029,17 +1030,17 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             // Auto focus is not supported
             if (modes == null || modes.length == 0 ||
                     (modes.length == 1 && modes[0] == CameraCharacteristics.CONTROL_AF_MODE_OFF)) {
-                Log.d(TAG, "updateAutoFocus 2");
+                Timber.tag(TAG).d("updateAutoFocus 2");
                 mAutoFocus = false;
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                         CaptureRequest.CONTROL_AF_MODE_OFF);
             } else {
-                Log.d(TAG, "updateAutoFocus 3");
+                Timber.tag(TAG).d("updateAutoFocus 3");
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                         CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
             }
         } else {
-            Log.d(TAG, "updateAutoFocus 4");
+            Timber.tag(TAG).d("updateAutoFocus 4");
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE,
                     CaptureRequest.CONTROL_AF_MODE_OFF);
         }
@@ -1050,7 +1051,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      */
     void updateFlash() {
         if (mPreviewRequestBuilder == null) {
-            Log.e(TAG, "updateFlash - mPreviewRequestBuilder is null");
+            Timber.tag(TAG).e("updateFlash - mPreviewRequestBuilder is null");
             return;
         }
 
@@ -1096,7 +1097,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             return;
         }
         if (mPreviewRequestBuilder == null) {
-            Log.e(TAG, "updateFocusDepth - mPreviewRequestBuilder is null");
+            Timber.tag(TAG).e("updateFocusDepth - mPreviewRequestBuilder is null");
             return;
         }
 
@@ -1117,7 +1118,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      */
     void updateZoom() {
         if (mPreviewRequestBuilder == null) {
-            Log.e(TAG, "updateZoom - mPreviewRequestBuilder is null");
+            Timber.tag(TAG).e("updateZoom - mPreviewRequestBuilder is null");
             return;
         }
 
@@ -1154,7 +1155,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      */
     void updateWhiteBalance() {
         if (mPreviewRequestBuilder == null) {
-            Log.e(TAG, "updateWhiteBalance - mPreviewRequestBuilder is null");
+            Timber.tag(TAG).e("updateWhiteBalance - mPreviewRequestBuilder is null");
             return;
         }
 
@@ -1191,21 +1192,21 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      */
     private void lockFocus() {
         if (mPreviewRequestBuilder == null) {
-            Log.e(TAG, "locaFocus - mPreviewRequestBuilder is null");
+            Timber.tag(TAG).e("locaFocus - mPreviewRequestBuilder is null");
             return;
         }
 
-        Log.d(TAG, "lockFocus - " + mCaptureCallback);
+        Timber.tag(TAG).d("lockFocus - " + mCaptureCallback);
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                 CaptureRequest.CONTROL_AF_TRIGGER_START);
         try {
-            Log.d(TAG, "lockFocus 2");
+            Timber.tag(TAG).d("lockFocus 2");
             mCaptureCallback.setState(PictureCaptureCallback.STATE_LOCKING);
-            Log.d(TAG, "lockFocus 3");
+            Timber.tag(TAG).d("lockFocus 3");
             mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, null);
-            Log.d(TAG, "lockFocus 4");
+            Timber.tag(TAG).d("lockFocus 4");
         } catch (CameraAccessException e) {
-            Log.e(TAG, "Failed to lock focus.", e);
+            Timber.tag(TAG).e("Failed to lock focus.", e);
         }
     }
 
@@ -1216,29 +1217,29 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     // Much credit - https://gist.github.com/royshil/8c760c2485257c85a11cafd958548482
     void setFocusArea(float x, float y) {
-        Log.d(TAG, "setFocusArea - " + x + "/" + y + ": " + mCaptureSession);
+        Timber.tag(TAG).d("setFocusArea - " + x + "/" + y + ": " + mCaptureSession);
         if (mCaptureSession == null) {
             return;
         }
         if (mPreviewRequestBuilder == null) {
-            Log.e(TAG, "setFocusArea - mPreviewRequestBuilder is null");
+            Timber.tag(TAG).e("setFocusArea - mPreviewRequestBuilder is null");
             return;
         }
 
         CameraCaptureSession.CaptureCallback captureCallbackHandler = new CameraCaptureSession.CaptureCallback() {
             @Override
             public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-                Log.d(TAG, "onCaptureCompleted (from setFocusArea) 1");
+                Timber.tag(TAG).d("onCaptureCompleted (from setFocusArea) 1");
                 super.onCaptureCompleted(session, request, result);
 
                 if (mPreviewRequestBuilder == null) {
-                    Log.e(TAG, "onCaptureCompleted - mPreviewRequestBuilder is null");
+                    Timber.tag(TAG).e("onCaptureCompleted - mPreviewRequestBuilder is null");
                     return;
                 }
 
-                Log.d(TAG, "onCaptureCompleted (from setFocusArea) 2 - " + request.getTag());
+                Timber.tag(TAG).d("onCaptureCompleted (from setFocusArea) 2 - " + request.getTag());
                 if (request.getTag() == "FOCUS_TAG") {
-                    Log.d(TAG, "onCaptureCompleted (from setFocusArea) 3");
+                    Timber.tag(TAG).d("onCaptureCompleted (from setFocusArea) 3");
                     mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, null);
                     try {
                         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
@@ -1247,38 +1248,38 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                                 null);
                         mCaptureCallback.setState(PictureCaptureCallback.STATE_PREVIEW);
                     } catch (Exception e) {
-                        Log.e(TAG, "Failed to manual focus.", e);
+                        Timber.tag(TAG).e("Failed to manual focus.", e);
                     }
                 }
             }
 
             @Override
             public void onCaptureFailed(CameraCaptureSession session, CaptureRequest request, CaptureFailure failure) {
-                Log.d(TAG, "onCaptureFailed");
+                Timber.tag(TAG).d("onCaptureFailed");
                 super.onCaptureFailed(session, request, failure);
-                Log.e(TAG, "Manual AF failure: " + failure);
+                Timber.tag(TAG).e("Manual AF failure: " + failure);
             }
         };
 
-        Log.d(TAG, "setFocusArea 2");
+        Timber.tag(TAG).d("setFocusArea 2");
         try {
             mCaptureSession.stopRepeating();
         } catch (CameraAccessException e) {
-            Log.e(TAG, "Failed to manual focus.", e);
+            Timber.tag(TAG).e("Failed to manual focus.", e);
         }
-        Log.d(TAG, "setFocusArea 3");
+        Timber.tag(TAG).d("setFocusArea 3");
 
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_CANCEL);
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_OFF);
         try {
             mCaptureSession.capture(mPreviewRequestBuilder.build(), captureCallbackHandler, null);
         } catch (CameraAccessException e) {
-            Log.e(TAG, "Failed to manual focus.", e);
+            Timber.tag(TAG).e("Failed to manual focus.", e);
         }
-        Log.d(TAG, "setFocusArea 4");
+        Timber.tag(TAG).d("setFocusArea 4");
 
         if (isMeteringAreaAFSupported()) {
-            Log.d(TAG, "setFocusArea 5");
+            Timber.tag(TAG).d("setFocusArea 5");
             MeteringRectangle focusAreaTouch = calculateFocusArea(x, y);
             mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_REGIONS, new MeteringRectangle[]{focusAreaTouch});
         }
@@ -1287,13 +1288,13 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
         mPreviewRequestBuilder.setTag("FOCUS_TAG");
 
-        Log.d(TAG, "setFocusArea 6");
+        Timber.tag(TAG).d("setFocusArea 6");
         try {
             mCaptureSession.capture(mPreviewRequestBuilder.build(), captureCallbackHandler, null);
         } catch (CameraAccessException e) {
-            Log.e(TAG, "Failed to manual focus.", e);
+            Timber.tag(TAG).e("Failed to manual focus.", e);
         }
-        Log.d(TAG, "setFocusArea 7");
+        Timber.tag(TAG).d("setFocusArea 7");
     }
 
     private boolean isMeteringAreaAFSupported() {
@@ -1321,14 +1322,14 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * Captures a still picture.
      */
     void captureStillPicture() {
-        Log.d(TAG, "captureStillPicture");
+        Timber.tag(TAG).d("captureStillPicture");
         try {
             if (mCamera == null) {
-                Log.e(TAG, "captureStillPicture - mCamera is null");
+                Timber.tag(TAG).e("captureStillPicture - mCamera is null");
                 return;
             }
             if (mPreviewRequestBuilder == null) {
-                Log.e(TAG, "captureStillPicture - mPreviewRequestBuilder is null");
+                Timber.tag(TAG).e("captureStillPicture - mPreviewRequestBuilder is null");
                 return;
             }
 
@@ -1375,30 +1376,30 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 captureRequestBuilder.set(CaptureRequest.JPEG_QUALITY, (byte)quality);
             }
 
-            Log.d(TAG, "captureStillPicture 2");
+            Timber.tag(TAG).d("captureStillPicture 2");
             captureRequestBuilder.set(CaptureRequest.SCALER_CROP_REGION, mPreviewRequestBuilder.get(CaptureRequest.SCALER_CROP_REGION));
             // Stop preview and capture a still picture.
-            Log.d(TAG, "captureStillPicture 3");
+            Timber.tag(TAG).d("captureStillPicture 3");
             mCaptureSession.stopRepeating();
-            Log.d(TAG, "captureStillPicture 4");
+            Timber.tag(TAG).d("captureStillPicture 4");
             mCaptureSession.capture(captureRequestBuilder.build(),
                     new CameraCaptureSession.CaptureCallback() {
                         @Override
                         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                                        @NonNull CaptureRequest request,
                                                        @NonNull TotalCaptureResult result) {
-                            Log.d(TAG, "captureStillPicture - onCaptureCompleted");
+                            Timber.tag(TAG).d("captureStillPicture - onCaptureCompleted");
                             if (mCaptureCallback.getOptions().hasKey("pauseAfterCapture")
                                     && !mCaptureCallback.getOptions().getBoolean("pauseAfterCapture")) {
                                 unlockFocus();
                             }
                         }
                     }, null);
-            Log.d(TAG, "captureStillPicture 5");
+            Timber.tag(TAG).d("captureStillPicture 5");
         } catch (CameraAccessException e) {
-            Log.e(TAG, "Cannot capture a still picture.", e);
+            Timber.tag(TAG).e("Cannot capture a still picture.", e);
         } catch (IllegalStateException e) {
-            Log.e(TAG, "Cannot capture still picture - Camera is probably closed", e);
+            Timber.tag(TAG).e("Cannot capture still picture - Camera is probably closed", e);
         }
     }
 
@@ -1499,9 +1500,9 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * capturing a still picture.
      */
     void unlockFocus() {
-        Log.d(TAG, "unlockFocus");
+        Timber.tag(TAG).d("unlockFocus");
         if (mPreviewRequestBuilder == null) {
-            Log.e(TAG, "unlockFocus - mPreviewRequestBuilder is null");
+            Timber.tag(TAG).e("unlockFocus - mPreviewRequestBuilder is null");
             return;
         }
 
@@ -1512,11 +1513,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             updateAutoFocus();
             updateFlash();
             if (mIsScanning) {
-                Log.d(TAG, "unlockFocus 2");
+                Timber.tag(TAG).d("unlockFocus 2");
                 mImageFormat = ImageFormat.YUV_420_888;
                 startCaptureSession();
             } else {
-                Log.d(TAG, "unlockFocus 3");
+                Timber.tag(TAG).d("unlockFocus 3");
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER,
                         CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
                 mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(), mCaptureCallback,
@@ -1524,7 +1525,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 mCaptureCallback.setState(PictureCaptureCallback.STATE_PREVIEW);
             }
         } catch (CameraAccessException e) {
-            Log.e(TAG, "Failed to restart camera preview.", e);
+            Timber.tag(TAG).e("Failed to restart camera preview.", e);
         }
     }
 
@@ -1585,26 +1586,26 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         }
 
         private void process(@NonNull CaptureResult result) {
-            Log.d(TAG, "process: " + mState + ":" + result);
+            Timber.tag(TAG).d("process: " + mState + ":" + result);
             switch (mState) {
                 case STATE_LOCKING: {
-                    Log.d(TAG, "process: STATE_LOCKING 1");
+                    Timber.tag(TAG).d("process: STATE_LOCKING 1");
                     Integer af = result.get(CaptureResult.CONTROL_AF_STATE);
                     if (af == null) {
                         break;
                     }
-                    Log.d(TAG, "process: STATE_LOCKING 2: " + af);
+                    Timber.tag(TAG).d("process: STATE_LOCKING 2: " + af);
                     if (af == CaptureResult.CONTROL_AF_STATE_FOCUSED_LOCKED ||
                             af == CaptureResult.CONTROL_AF_STATE_PASSIVE_FOCUSED ||
                             af == CaptureResult.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
                         Integer ae = result.get(CaptureResult.CONTROL_AE_STATE);
-                        Log.d(TAG, "process: STATE_LOCKING 3: " + ae);
+                        Timber.tag(TAG).d("process: STATE_LOCKING 3: " + ae);
                         if (ae == null || ae == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                            Log.d(TAG, "process 4");
+                            Timber.tag(TAG).d("process 4");
                             setState(STATE_CAPTURING);
                             onReady();
                         } else {
-                            Log.d(TAG, "process 5");
+                            Timber.tag(TAG).d("process 5");
                             setState(STATE_LOCKED);
                             onPrecaptureRequired();
                         }
@@ -1613,20 +1614,20 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 }
                 case STATE_PRECAPTURE: {
                     Integer ae = result.get(CaptureResult.CONTROL_AE_STATE);
-                    Log.d(TAG, "process: STATE_PRECAPTURE 1: " + ae);
+                    Timber.tag(TAG).d("process: STATE_PRECAPTURE 1: " + ae);
                     if (ae == null || ae == CaptureResult.CONTROL_AE_STATE_PRECAPTURE ||
                             ae == CaptureRequest.CONTROL_AE_STATE_FLASH_REQUIRED ||
                             ae == CaptureResult.CONTROL_AE_STATE_CONVERGED) {
-                        Log.d(TAG, "process: STATE_PRECAPTURE 2");
+                        Timber.tag(TAG).d("process: STATE_PRECAPTURE 2");
                         setState(STATE_WAITING);
                     }
                     break;
                 }
                 case STATE_WAITING: {
                     Integer ae = result.get(CaptureResult.CONTROL_AE_STATE);
-                    Log.d(TAG, "process: STATE_WAITING 1: " + ae);
+                    Timber.tag(TAG).d("process: STATE_WAITING 1: " + ae);
                     if (ae == null || ae != CaptureResult.CONTROL_AE_STATE_PRECAPTURE) {
-                        Log.d(TAG, "process: STATE_WAITING 2");
+                        Timber.tag(TAG).d("process: STATE_WAITING 2");
                         setState(STATE_CAPTURING);
                         onReady();
                     }

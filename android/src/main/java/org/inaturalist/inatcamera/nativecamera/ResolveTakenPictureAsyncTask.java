@@ -1,5 +1,7 @@
 package org.inaturalist.inatcamera.nativecamera;
 
+import timber.log.*;
+
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.util.Log;
@@ -98,7 +100,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
 
     @Override
     protected WritableMap doInBackground(Void... voids) {
-        Log.d(TAG, "doInBackground");
+        Timber.tag(TAG).d("doInBackground");
         WritableMap response = Arguments.createMap();
         ByteArrayInputStream inputStream = null;
 
@@ -143,21 +145,21 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
             return response;
         }
 
-        Log.d(TAG, "doInBackground 2 - " + mBitmap);
+        Timber.tag(TAG).d("doInBackground 2 - " + mBitmap);
         // we need the stream only for photos from a device
         if (mBitmap == null) {
             mBitmap = BitmapFactory.decodeByteArray(mImageData, 0, mImageData.length);
             inputStream = new ByteArrayInputStream(mImageData);
         }
-        Log.d(TAG, "doInBackground 3");
+        Timber.tag(TAG).d("doInBackground 3");
 
         try {
             WritableMap fileExifData = null;
 
             if (inputStream != null) {
-                Log.d(TAG, "doInBackground 4");
+                Timber.tag(TAG).d("doInBackground 4");
                 ExifInterface exifInterface = new ExifInterface(inputStream);
-                Log.d(TAG, "doInBackground 5");
+                Timber.tag(TAG).d("doInBackground 5");
                 // Get orientation of the image from mImageData via inputStream
                 int orientation = exifInterface.getAttributeInt(ExifInterface.TAG_ORIENTATION,
                         ExifInterface.ORIENTATION_UNDEFINED);
@@ -167,17 +169,17 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                         && mOptions.getBoolean("fixOrientation")
                         && orientation != ExifInterface.ORIENTATION_UNDEFINED;
                 if (fixOrientation) {
-                    Log.d(TAG, "doInBackground 6");
+                    Timber.tag(TAG).d("doInBackground 6");
                     mBitmap = rotateBitmap(mBitmap, getImageRotation(orientation));
                 }
 
                 if (mOptions.hasKey("width")) {
-                    Log.d(TAG, "doInBackground 7");
+                    Timber.tag(TAG).d("doInBackground 7");
                     mBitmap = resizeBitmap(mBitmap, mOptions.getInt("width"));
                 }
 
                 if (mOptions.hasKey("mirrorImage") && mOptions.getBoolean("mirrorImage")) {
-                    Log.d(TAG, "doInBackground 8");
+                    Timber.tag(TAG).d("doInBackground 8");
                     mBitmap = flipHorizontally(mBitmap);
                 }
 
@@ -199,14 +201,14 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
 
                 // Read Exif data if needed
                 if (writeExifToResponse || writeExifToFile) {
-                    Log.d(TAG, "doInBackground 9");
+                    Timber.tag(TAG).d("doInBackground 9");
                     exifData = RNCameraViewHelper.getExifData(exifInterface);
-                    Log.d(TAG, "doInBackground 10");
+                    Timber.tag(TAG).d("doInBackground 10");
                 }
 
                 // Write Exif data to output file if requested
                 if (writeExifToFile) {
-                    Log.d(TAG, "doInBackground 11");
+                    Timber.tag(TAG).d("doInBackground 11");
                     fileExifData = Arguments.createMap();
                     fileExifData.merge(exifData);
                     fileExifData.putInt("width", mBitmap.getWidth());
@@ -217,7 +219,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                     if (exifExtraData != null) {
                         fileExifData.merge(exifExtraData);
                     }
-                    Log.d(TAG, "doInBackground 12");
+                    Timber.tag(TAG).d("doInBackground 12");
                 }
 
                 // Write Exif data to the response if requested
@@ -230,32 +232,32 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
             response.putInt("width", mBitmap.getWidth());
             response.putInt("height", mBitmap.getHeight());
 
-            Log.d(TAG, "doInBackground 13");
-            Log.d(TAG, "doInBackground 14");
+            Timber.tag(TAG).d("doInBackground 13");
+            Timber.tag(TAG).d("doInBackground 14");
 
             // Get predictions for that image
             List<Prediction> predictions = mCameraView.getPredictionsForImage(mBitmap);
-            Log.d(TAG, "doInBackground 15");
+            Timber.tag(TAG).d("doInBackground 15");
             mCameraView.fillResults(response, predictions);
-            Log.d(TAG, "doInBackground 16");
+            Timber.tag(TAG).d("doInBackground 16");
 
             // Write compressed image to file in cache directory unless otherwise specified
             if (!mOptions.hasKey("doNotSave") || !mOptions.getBoolean("doNotSave")) {
-                Log.d(TAG, "doInBackground 17");
+                Timber.tag(TAG).d("doInBackground 17");
                 String filePath = writeBitmap(response);
-                Log.d(TAG, "doInBackground 18");
+                Timber.tag(TAG).d("doInBackground 18");
                 if (fileExifData != null) {
-                    Log.d(TAG, "doInBackground 19");
+                    Timber.tag(TAG).d("doInBackground 19");
                     ExifInterface fileExifInterface = new ExifInterface(filePath);
-                    Log.d(TAG, "doInBackground 20");
+                    Timber.tag(TAG).d("doInBackground 20");
 
 
                     RNCameraViewHelper.setExifData(fileExifInterface, fileExifData);
-                    Log.d(TAG, "doInBackground 21");
+                    Timber.tag(TAG).d("doInBackground 21");
 
                     // Add Location EXIF
                     Location location = mCameraView.getLocation();
-                    Log.d(TAG, "doInBackground 22");
+                    Timber.tag(TAG).d("doInBackground 22");
 
                     if (location != null) {
                         double latitude = location.getLatitude();
@@ -267,9 +269,9 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                         fileExifInterface.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, GPSEncoder.longitudeRef(longitude));
                     }
 
-                    Log.d(TAG, "doInBackground 23");
+                    Timber.tag(TAG).d("doInBackground 23");
                     fileExifInterface.saveAttributes();
-                    Log.d(TAG, "doInBackground 24");
+                    Timber.tag(TAG).d("doInBackground 24");
                 }
                 File imageFile = new File(filePath);
                 String fileUri = Uri.fromFile(imageFile).toString();
@@ -281,7 +283,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                 inputStream = null;
             }
 
-            Log.d(TAG, "doInBackground 25 - end");
+            Timber.tag(TAG).d("doInBackground 25 - end");
             return response;
         } catch (Resources.NotFoundException e) {
             mPromise.reject(ERROR_TAG, "Documents directory of the app could not be found.", e);

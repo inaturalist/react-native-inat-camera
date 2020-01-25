@@ -86,6 +86,12 @@ export class INatCamera extends React.Component<PropsType, StateType> {
         }
     };
 
+    _onLog = (event) => {
+        if (this.props.onLog) {
+            this.props.onLog(event);
+        }
+
+    };
 
     render() {
         return (
@@ -103,6 +109,7 @@ export class INatCamera extends React.Component<PropsType, StateType> {
                     taxonomyPath={this.props.taxonomyPath}
                     taxaDetectionInterval={this.props.taxaDetectionInterval}
                     confidenceThreshold={this.props.confidenceThreshold}
+                    onLog={this._onLog}
                 />
             </View>
         );

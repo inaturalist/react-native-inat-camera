@@ -16,6 +16,7 @@
 
 package org.inaturalist.inatcamera.ui;
 
+import timber.log.*;
 import org.inaturalist.inatcamera.R;
 import android.view.TextureView;
 import android.os.Handler;
@@ -875,7 +876,7 @@ public class CameraView extends FrameLayout implements OnTouchListener {
                 x = y0;
                 y = -x0 + 1;
 
-                Log.d(TAG, "Tap to focus - " + x + "/" + y);
+                Timber.tag(TAG).d("Tap to focus - " + x + "/" + y);
 
                 // Set auto focus area for camera
                 setAutoFocusPointOfInterest(x, y);

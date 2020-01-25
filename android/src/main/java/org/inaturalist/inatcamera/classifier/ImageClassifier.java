@@ -3,6 +3,7 @@ package org.inaturalist.inatcamera.classifier;
 import android.graphics.Bitmap;
 import android.os.SystemClock;
 import android.util.Log;
+import timber.log.*;
 
 import org.tensorflow.lite.Interpreter;
 
@@ -59,7 +60,7 @@ public class ImageClassifier {
                 ByteBuffer.allocateDirect(
                         4 * DIM_BATCH_SIZE * DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y * DIM_PIXEL_SIZE);
         imgData.order(ByteOrder.nativeOrder());
-        Log.d(TAG, "Created a Tensorflow Lite Image Classifier.");
+        Timber.tag(TAG).d("Created a Tensorflow Lite Image Classifier.");
 
         mTaxonomy = new Taxonomy(new FileInputStream(mTaxonomyFilename));
         mModelSize = mTaxonomy.getModelSize();
@@ -68,11 +69,11 @@ public class ImageClassifier {
     /** Classifies a frame from the preview stream. */
     public List<Prediction> classifyFrame(Bitmap bitmap) {
         if (mTFlite == null) {
-            Log.e(TAG, "Image classifier has not been initialized; Skipped.");
+            Timber.tag(TAG).e("Image classifier has not been initialized; Skipped.");
             return null;
         }
         if (bitmap == null) {
-            Log.e(TAG, "Null input bitmap");
+            Timber.tag(TAG).e("Null input bitmap");
             return null;
         }
 
@@ -132,7 +133,7 @@ public class ImageClassifier {
             }
         }
         long endTime = SystemClock.uptimeMillis();
-        Log.d(TAG, "Timecost to put values into ByteBuffer: " + Long.toString(endTime - startTime));
+        Timber.tag(TAG).d("Timecost to put values into ByteBuffer: " + Long.toString(endTime - startTime));
     }
 
 }
