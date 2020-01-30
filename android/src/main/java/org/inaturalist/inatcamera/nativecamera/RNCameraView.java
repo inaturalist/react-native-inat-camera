@@ -280,16 +280,22 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
     @Override
     public void onHostResume() {
+        Timber.tag(TAG).d("RNCameraView - onHostResume 1");
+
         if (hasCameraPermissions()) {
+            Timber.tag(TAG).d("RNCameraView - onHostResume 2");
             mBgHandler.post(new Runnable() {
                 @Override
                 public void run() {
+                    Timber.tag(TAG).d("RNCameraView - onHostResume 3 - " + mIsPaused + ":" + isCameraOpened() + ":" + mIsNew);
                     if ((mIsPaused && !isCameraOpened()) || mIsNew) {
                         mIsPaused = false;
                         mIsNew = false;
                         try {
+                            Timber.tag(TAG).d("RNCameraView - onHostResume 4");
                             start();
                         } catch (RuntimeException exc) {
+                            Timber.tag(TAG).d("RNCameraView - onHostResume 5 - " + exc);
                             WritableMap event = Arguments.createMap();
                             event.putString("error", exc.getMessage());
                             mThemedReactContext.getJSModule(RCTEventEmitter.class).receiveEvent(
@@ -306,6 +312,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
         // Maybe should be called once and not every onResume?
         if (mModelFilename == null) {
+            Timber.tag(TAG).d("RNCameraView - onHostResume 6");
             return;
         }
 
@@ -344,6 +351,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
             mRunClassifier = true;
         }
 
+        Timber.tag(TAG).d("RNCameraView - onHostResume 7");
         mBgHandler.post(periodicClassify);
     }
 

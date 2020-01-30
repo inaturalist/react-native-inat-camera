@@ -146,6 +146,7 @@ public class CameraView extends FrameLayout implements OnTouchListener {
         // Internal setup
         final PreviewImpl preview = createPreviewImpl(context);
         mCallbacks = new CallbackBridge();
+        Timber.tag(TAG).d("CameraView ctor - " + preview);
         if (Build.VERSION.SDK_INT < 23) {
             mImpl = new Camera2(mCallbacks, preview, context, mBgHandler);
         } else {
@@ -299,7 +300,10 @@ public class CameraView extends FrameLayout implements OnTouchListener {
      * {@link Activity#onResume()}.
      */
     public void start() {
+        Timber.tag(TAG).d("CameraView - start 1");
+
         if (!mImpl.start()) {
+            Timber.tag(TAG).d("CameraView - start 2");
             if (mImpl.getView() != null) {
                 Handler mainHandler = new Handler(mContext.getMainLooper());
                 Runnable runnable = new Runnable() {
@@ -318,6 +322,7 @@ public class CameraView extends FrameLayout implements OnTouchListener {
      * {@link Activity#onPause()}.
      */
     public void stop() {
+        Timber.tag(TAG).d("CameraView - stop 1");
         mImpl.stop();
     }
 

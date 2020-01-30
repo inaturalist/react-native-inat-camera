@@ -93,6 +93,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
+            Timber.tag(TAG).d("Camera - onOpened: " + camera);
             mCamera = camera;
             mCallback.onCameraOpened();
             startCaptureSession();
@@ -100,17 +101,19 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
         @Override
         public void onClosed(@NonNull CameraDevice camera) {
+            Timber.tag(TAG).d("Camera - onClosed - " + camera);
             mCallback.onCameraClosed();
         }
 
         @Override
         public void onDisconnected(@NonNull CameraDevice camera) {
+            Timber.tag(TAG).d("Camera - onDisconnected - " + camera);
             mCamera = null;
         }
 
         @Override
         public void onError(@NonNull CameraDevice camera, int error) {
-            Timber.tag(TAG).e("onError: " + camera.getId() + " (" + error + ")");
+            Timber.tag(TAG).e("Camera - onError: " + camera.getId() + " (" + error + ")");
             mCamera = null;
         }
 
@@ -298,11 +301,13 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         mPreview.setCallback(new PreviewImpl.Callback() {
             @Override
             public void onSurfaceChanged() {
+                Timber.tag(TAG).d("onSurfaceChanged - " + mCameraId);
                 startCaptureSession();
             }
 
             @Override
             public void onSurfaceDestroyed() {
+                Timber.tag(TAG).d("onSurfaceDestroyed");
                 stop();
             }
         });
@@ -310,21 +315,31 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     boolean start() {
+        Timber.tag(TAG).d("start - 1");
+
         if (!chooseCameraIdByFacing()) {
+            Timber.tag(TAG).d("start - 2");
             mAspectRatio = mInitialRatio;
             return false;
         }
+        Timber.tag(TAG).d("start - 3");
         collectCameraInfo();
         setAspectRatio(mInitialRatio);
         mInitialRatio = null;
+        Timber.tag(TAG).d("start - 4");
         prepareStillImageReader();
+        Timber.tag(TAG).d("start - 5");
         prepareScanImageReader();
+        Timber.tag(TAG).d("start - 6");
         startOpeningCamera();
+        Timber.tag(TAG).d("start - 7");
         return true;
     }
 
     @Override
     void stop() {
+        Timber.tag(TAG).d("stop - " + mCaptureSession + ":" + mCamera + ":" + mStillImageReader + ":" + mScanImageReader);
+
         if (mCaptureSession != null) {
             mCaptureSession.close();
             mCaptureSession = null;
@@ -364,11 +379,14 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     void setFacing(int facing) {
+        Timber.tag(TAG).d("setFacing 1: " + facing + ":" + mFacing + ":" + mCamera);
+
         if (mFacing == facing) {
             return;
         }
         mFacing = facing;
         if (isCameraOpened()) {
+            Timber.tag(TAG).d("setFacing 2");
             stop();
             start();
         }
@@ -381,6 +399,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     void setCameraId(String id) {
+        Timber.tag(TAG).d("setCameraId: " + id + ":" + mCamera + ":" + _mCameraId);
         if(!Objects.equals(_mCameraId, id)){
             _mCameraId = id;
 
@@ -438,6 +457,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     void setPictureSize(Size size) {
+        Timber.tag(TAG).d("setPictureSize - " + mCameraId + ":" + size + ":" + mCaptureSession);
         if (mCaptureSession != null) {
             try {
                 mCaptureSession.stopRepeating();
@@ -452,12 +472,14 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         }
         if (size == null) {
             if (mAspectRatio == null) {
+                Timber.tag(TAG).d("setPictureSize 2");
                 return;
             }
             mPictureSizes.sizes(mAspectRatio).last();
         } else {
             mPictureSize = size;
         }
+        Timber.tag(TAG).d("setPictureSize 3");
         prepareStillImageReader();
         startCaptureSession();
     }
@@ -469,19 +491,25 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     boolean setAspectRatio(AspectRatio ratio) {
+        Timber.tag(TAG).d("setAspectRatio 1 - " + ratio);
+
         if (ratio != null && mPreviewSizes.isEmpty()) {
             mInitialRatio = ratio;
+            Timber.tag(TAG).d("setAspectRatio 2");
             return false;
         }
         if (ratio == null || ratio.equals(mAspectRatio) ||
                 !mPreviewSizes.ratios().contains(ratio)) {
             // TODO: Better error handling
+            Timber.tag(TAG).d("setAspectRatio 3");
             return false;
         }
         mAspectRatio = ratio;
+        Timber.tag(TAG).d("setAspectRatio 4");
         prepareStillImageReader();
         prepareScanImageReader();
         if (mCaptureSession != null) {
+            Timber.tag(TAG).d("setAspectRatio 5");
             mCaptureSession.close();
             mCaptureSession = null;
             startCaptureSession();
@@ -603,6 +631,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     void stopRecording() {
+        Timber.tag(TAG).d("stopRecording 1 - " + mIsRecording);
         if (mIsRecording) {
             stopMediaRecorder();
 
@@ -610,6 +639,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 mCaptureSession.close();
                 mCaptureSession = null;
             }
+            Timber.tag(TAG).d("stopRecording 2");
             startCaptureSession();
         }
     }
@@ -700,7 +730,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     void setScanning(boolean isScanning) {
-        Timber.tag(TAG).d("setScanning - " + isScanning);
+        Timber.tag(TAG).d("setScanning - " + isScanning + ":" + mIsScanning);
         if (mIsScanning == isScanning) {
             return;
         }
@@ -746,11 +776,14 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * {@link #mFacing}.</p>
      */
     private boolean chooseCameraIdByFacing() {
+        Timber.tag(TAG).d("chooseCameraIdByFacing 1 " + _mCameraId);
+
         if(_mCameraId == null){
             try {
                 int internalFacing = INTERNAL_FACINGS.get(mFacing);
                 final String[] ids = mCameraManager.getCameraIdList();
                 if (ids.length == 0) { // No camera
+                    Timber.tag(TAG).d("chooseCameraIdByFacing 2");
                     throw new RuntimeException("No camera available.");
                 }
                 for (String id : ids) {
@@ -763,11 +796,13 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                     }
                     Integer internal = characteristics.get(CameraCharacteristics.LENS_FACING);
                     if (internal == null) {
+                        Timber.tag(TAG).d("chooseCameraIdByFacing 3 - LENS_FACING null");
                         throw new NullPointerException("Unexpected state: LENS_FACING null");
                     }
                     if (internal == internalFacing) {
                         mCameraId = id;
                         mCameraCharacteristics = characteristics;
+                        Timber.tag(TAG).d("chooseCameraIdByFacing 4 - " + mCameraId);
                         return true;
                     }
                 }
@@ -778,27 +813,33 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                         CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
                 if (level == null ||
                         level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
+                    Timber.tag(TAG).d("chooseCameraIdByFacing 5");
                     return false;
                 }
                 Integer internal = mCameraCharacteristics.get(CameraCharacteristics.LENS_FACING);
                 if (internal == null) {
+                    Timber.tag(TAG).d("chooseCameraIdByFacing 6 - LENS_FACING null");
                     throw new NullPointerException("Unexpected state: LENS_FACING null");
                 }
                 for (int i = 0, count = INTERNAL_FACINGS.size(); i < count; i++) {
                     if (INTERNAL_FACINGS.valueAt(i) == internal) {
                         mFacing = INTERNAL_FACINGS.keyAt(i);
+                        Timber.tag(TAG).d("chooseCameraIdByFacing 7 - " + mFacing);
                         return true;
                     }
                 }
                 // The operation can reach here when the only camera device is an external one.
                 // We treat it as facing back.
                 mFacing = Constants.FACING_BACK;
+                Timber.tag(TAG).d("chooseCameraIdByFacing 8");
                 return true;
             } catch (CameraAccessException e) {
+                Timber.tag(TAG).d("chooseCameraIdByFacing 9 - " + e);
                 throw new RuntimeException("Failed to get a list of camera devices", e);
             }
         }
         else{
+            Timber.tag(TAG).d("chooseCameraIdByFacing 10");
 
             try{
                 // need to set the mCameraCharacteristics variable as above and also do the same checks
@@ -809,12 +850,14 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                         CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
                 if (level == null ||
                         level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
+                    Timber.tag(TAG).d("chooseCameraIdByFacing 11");
                     return false;
                 }
 
                 // set our facing variable so orientation also works as expected
                 Integer internal = mCameraCharacteristics.get(CameraCharacteristics.LENS_FACING);
                 if (internal == null) {
+                    Timber.tag(TAG).d("chooseCameraIdByFacing 12");
                     throw new NullPointerException("Unexpected state: LENS_FACING null");
                 }
                 for (int i = 0, count = INTERNAL_FACINGS.size(); i < count; i++) {
@@ -825,9 +868,11 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 }
 
                 mCameraId = _mCameraId;
+                Timber.tag(TAG).d("chooseCameraIdByFacing 13 - " + mCameraId);
                 return true;
             }
             catch(Exception e){
+                Timber.tag(TAG).d("chooseCameraIdByFacing 14 - " + e);
                 throw new RuntimeException("Failed to get camera characteristics", e);
             }
         }
@@ -887,6 +932,8 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
     }
 
     private void prepareScanImageReader() {
+        Timber.tag(TAG).d("prepareScanImageReader");
+
         if (mScanImageReader != null) {
             mScanImageReader.close();
         }
@@ -902,8 +949,10 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      */
     private void startOpeningCamera() {
         try {
+            Timber.tag(TAG).d("startOpeningCamera - " + mCameraId);
             mCameraManager.openCamera(mCameraId, mCameraDeviceCallback, null);
         } catch (CameraAccessException e) {
+            Timber.tag(TAG).e("startOpeningCamera Error - " + e);
             throw new RuntimeException("Failed to open camera: " + mCameraId, e);
         }
     }
@@ -914,7 +963,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * <p>The result will be continuously processed in {@link #mSessionCallback}.</p>
      */
     void startCaptureSession() {
-        Timber.tag(TAG).d("startCaptureSession 1");
+        Timber.tag(TAG).d("startCaptureSession 1 - " + mCamera + ":" + mPreview.isReady() + ":" + mStillImageReader + ":" + mScanImageReader);
         if (!isCameraOpened() || !mPreview.isReady() || mStillImageReader == null || mScanImageReader == null) {
             return;
         }
@@ -960,6 +1009,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
 
     @Override
     public void setPreviewTexture(SurfaceTexture surfaceTexture) {
+        Timber.tag(TAG).d("setPreviewTexture 1 - " + surfaceTexture);
         if (surfaceTexture != null) {
             Surface previewSurface = new Surface(surfaceTexture);
             mPreviewSurface = previewSurface;
@@ -972,6 +1022,8 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         handler.post(new Runnable() {
             @Override
             public void run() {
+                Timber.tag(TAG).d("setPreviewTexture 2 - " + mCaptureSession);
+
                 if (mCaptureSession != null) {
                     mCaptureSession.close();
                     mCaptureSession = null;
