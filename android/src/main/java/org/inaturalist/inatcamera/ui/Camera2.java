@@ -790,6 +790,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                     CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(id);
                     Integer level = characteristics.get(
                             CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
+                    Timber.tag(TAG).d("chooseCameraIdByFacing 2b - " + id + ":" + level);
                     if (level == null ||
                             level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
                         continue;
@@ -813,7 +814,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                         CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL);
                 if (level == null ||
                         level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
-                    Timber.tag(TAG).d("chooseCameraIdByFacing 5");
+                    Timber.tag(TAG).d("chooseCameraIdByFacing 5 - " + level + ":" + CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY);
                     return false;
                 }
                 Integer internal = mCameraCharacteristics.get(CameraCharacteristics.LENS_FACING);
