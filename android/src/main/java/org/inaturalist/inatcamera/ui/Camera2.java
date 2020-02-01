@@ -815,7 +815,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 if (level == null ||
                         level == CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY) {
                     Timber.tag(TAG).d("chooseCameraIdByFacing 5 - " + level + ":" + CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY);
-                    return false;
+                    //return false;
                 }
                 Integer internal = mCameraCharacteristics.get(CameraCharacteristics.LENS_FACING);
                 if (internal == null) {
