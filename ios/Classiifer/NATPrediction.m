@@ -15,6 +15,7 @@
     if (self = [super init]) {
         self.node = node;
         self.score = score;
+        self.rank = node.rank.integerValue;
     }
     
     return self;

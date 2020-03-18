@@ -14,16 +14,11 @@
 @property NSArray *nodes;
 @property NSDictionary *nodesByTaxonId;
 @property NSDictionary *nodesByLeafId;
+@property NSDictionary *nodesByRank;
 @property NSMutableArray *counted;
+@property NSArray *sortedRanks;
 
 @property NATNode *life;
-@property NSMutableArray *speciesNodes;
-@property NSMutableArray *genusNodes;
-@property NSMutableArray *familyNodes;
-@property NSMutableArray *orderNodes;
-@property NSMutableArray *classNodes;
-@property NSMutableArray *phylumNodes;
-@property NSMutableArray *kingdomNodes;
 @end
 
 @implementation NATTaxonomy
@@ -54,51 +49,42 @@
         self.life =  [[NATNode alloc] init];
         self.life.taxonId = @(48460);
         self.life.rank = @(100);
-        self.life.classId = @(0);
         self.life.name = @"Life";
-
-        self.speciesNodes = [NSMutableArray array];
-        self.genusNodes = [NSMutableArray array];
-        self.familyNodes = [NSMutableArray array];
-        self.orderNodes = [NSMutableArray array];
-        self.classNodes = [NSMutableArray array];
-        self.phylumNodes = [NSMutableArray array];
-        self.kingdomNodes = [NSMutableArray array];
-
+        
+        // extract nodes from taxa json object
         NSMutableArray *allNodes = [NSMutableArray arrayWithCapacity:taxa.count];
         for (NSDictionary *taxonDict in taxa) {
             NATNode *node = [[NATNode alloc] initWithDictionary:taxonDict];
-            if (node.rank.integerValue == 10) {
-                [self.speciesNodes addObject:node];
-            } else if (node.rank.integerValue == 20) {
-                [self.genusNodes addObject:node];
-            } else if (node.rank.integerValue == 30) {
-                [self.familyNodes addObject:node];
-            } else if (node.rank.integerValue == 40) {
-                [self.orderNodes addObject:node];
-            } else if (node.rank.integerValue == 50) {
-                [self.classNodes addObject:node];
-            } else if (node.rank.integerValue == 60) {
-                [self.phylumNodes addObject:node];
-            } else if (node.rank.integerValue == 70) {
-                [self.kingdomNodes addObject:node];
-            }
-            
             [allNodes addObject:node];
         }
         self.nodes = [NSArray arrayWithArray:allNodes];
         
+        // make lookup helper dicts
         NSMutableDictionary *allNodesByTaxonId = [NSMutableDictionary dictionaryWithCapacity:taxa.count];
         NSMutableDictionary *allNodesByLeafId = [NSMutableDictionary dictionaryWithCapacity:taxa.count];
+        NSMutableDictionary *allNodesByRank = [NSMutableDictionary dictionaryWithCapacity:taxa.count];
         for (NATNode *node in self.nodes) {
             allNodesByTaxonId[node.taxonId] = node;
             if (node.leafId) {
                 allNodesByLeafId[node.leafId] = node;
             }
+            if (allNodesByRank[node.rank]) {
+                [allNodesByRank[node.rank] addObject:node];
+            } else {
+                allNodesByRank[node.rank] = [NSMutableArray arrayWithObject:node];
+            }
         }
         self.nodesByTaxonId = [NSDictionary dictionaryWithDictionary:allNodesByTaxonId];
         self.nodesByLeafId = [NSDictionary dictionaryWithDictionary:allNodesByLeafId];
+        self.nodesByRank = [NSDictionary dictionaryWithDictionary:allNodesByRank];
         
+        // helper sorted list of ranks in the taxonomy
+        NSArray *ranks = self.nodesByRank.allKeys;
+        self.sortedRanks = [ranks sortedArrayUsingComparator:^NSComparisonResult(NSNumber *rank1, NSNumber *rank2) {
+            return [rank1 compare:rank2];
+        }];
+        
+        // build parentage
         for (NATNode *node in self.nodes) {
             if (node.parentTaxonId) {
                 NATNode *parent = self.nodesByTaxonId[node.parentTaxonId];
@@ -122,15 +108,9 @@
     self.nodes = nil;
     self.nodesByTaxonId = nil;
     self.nodesByLeafId = nil;
+    self.nodesByRank = nil;
+    self.sortedRanks = nil;
     self.counted = nil;
-    
-    self.speciesNodes = nil;
-    self.genusNodes = nil;
-    self.familyNodes = nil;
-    self.orderNodes = nil;
-    self.classNodes = nil;
-    self.phylumNodes = nil;
-    self.kingdomNodes = nil;
 }
 
 - (NSArray *)inflateTopBranchFromClassification:(MLMultiArray *)classification {
@@ -141,7 +121,7 @@
 - (NATPrediction *)inflateTopPredictionFromClassification:(MLMultiArray *)classification confidenceThreshold:(float)threshold {
     NSDictionary *scores = [self aggregateScores:classification];
     NSArray *bestBranch = [self buildBestBranchFromScores:scores];
-        
+    
     for (NATPrediction *prediction in [bestBranch reverseObjectEnumerator]) {
         if (prediction.score > threshold) {
             return prediction;
@@ -153,21 +133,33 @@
 
 - (NSDictionary *)aggregateScores:(MLMultiArray *)classification {
     NSMutableDictionary *scores = [NSMutableDictionary dictionary];
+
+    // work from the bottom up
     
-    // rank 10: no children
-    for (NATNode *node in self.speciesNodes) {
-        NSNumber *score = [classification objectAtIndexedSubscript:node.leafId.integerValue];
-        scores[node.taxonId] = score;
+    // process leaf nodes first
+    for (NATNode *node in self.nodes) {
+        if (!node.leafId) {
+            // this is a leaf
+            NSNumber *score = [classification objectAtIndexedSubscript:node.leafId.integerValue];
+            scores[node.taxonId] = score;
+        }
     }
     
-    // children with children
-    NSArray *ranks = @[
-                       self.genusNodes, self.familyNodes, self.orderNodes,
-                       self.classNodes, self.phylumNodes, self.kingdomNodes,
-                       ];
+    
+    // now we can aggregate scores for non-leaf nodes
+    for (NATNode *node in self.nodes) {
+        // this is not a leaf node, so its score is the aggregate of all its children's scores
+        float aggregateScore = 0.0f;
+        for (NATNode *child in node.children) {
+            float childScore = [scores[child.taxonId] floatValue];
+            aggregateScore += childScore;
+        }
+        scores[node.taxonId] = @(aggregateScore);
+    }
     
     // work from the bottom up
-    for (NSArray *rankNodes in ranks) {
+    for (NSNumber *rank in self.sortedRanks) {
+        NSArray *rankNodes = [self.nodesByRank objectForKey:rank];
         for (NATNode *node in rankNodes) {
             if (node.leafId) {
                 // this is a leaf node, take its score from the classification output

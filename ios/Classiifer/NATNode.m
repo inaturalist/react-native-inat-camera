@@ -24,10 +24,6 @@
             self.taxonId = [dict valueForKey:@"taxon_id"];
         }
         
-        if ([dict valueForKey:@"class_id"] && [dict valueForKey:@"class_id"] != [NSNull null]) {
-            self.classId = [dict valueForKey:@"class_id"];
-        }
-
         if ([dict valueForKey:@"rank_level"] && [dict valueForKey:@"rank_level"] != [NSNull null]) {
             self.rank = [dict valueForKey:@"rank_level"];
         }
@@ -60,7 +56,6 @@
 - (NSDictionary *)asDict {
     NSDictionary *dict = @{
                            @"taxon_id": self.taxonId,
-                           @"class_id": self.classId,
                            @"rank": self.rank,
                            };
     

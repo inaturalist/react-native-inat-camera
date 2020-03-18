@@ -11,7 +11,6 @@
 @interface NATNode : NSObject
 
 @property NSNumber *taxonId;
-@property NSNumber *classId;
 @property NSString *name;
 @property NSNumber *rank;
 @property NSNumber *leafId;
