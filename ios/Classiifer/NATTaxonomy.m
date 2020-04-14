@@ -45,7 +45,9 @@
         NSAssert(jsonError == nil, @"error getting json from %@: %@", taxaFile, jsonError.localizedDescription);
         NSAssert(taxa, @"failed to get json from %@", taxaFile);
         NSAssert(taxa.count > 0, @"failed to get list of json from %@", taxaFile);
-
+        
+        self.linneanPredictionsOnly = YES;
+        
         self.life =  [[NATNode alloc] init];
         self.life.taxonId = @(48460);
         self.life.rank = @(100);
@@ -125,6 +127,12 @@
     NSArray *bestBranch = [self buildBestBranchFromScores:scores];
     
     for (NATPrediction *prediction in [bestBranch reverseObjectEnumerator]) {
+        if (self.linneanPredictionsOnly) {
+            // only KPCOFGS ranks qualify as "top" predictions
+            // in the iNat taxonomy, KPCOFGS ranks are 70,60,50,40,30,20,10
+            if (prediction.rank % 10 != 0) { continue; }
+        }
+        
         if (prediction.score > threshold) {
             return prediction;
         }
