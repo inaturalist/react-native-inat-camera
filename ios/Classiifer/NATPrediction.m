@@ -27,4 +27,9 @@
     return [NSDictionary dictionaryWithDictionary:mutableNodeDict];
 }
 
+- (NSString *)description {
+    return [NSString stringWithFormat:@"%ld - %@ - %f",
+            (long)self.rank, self.node.name, self.score];
+}
+
 @end
