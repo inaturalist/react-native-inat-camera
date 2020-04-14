@@ -76,8 +76,10 @@
         }
         self.nodesByTaxonId = [NSDictionary dictionaryWithDictionary:allNodesByTaxonId];
         self.nodesByLeafId = [NSDictionary dictionaryWithDictionary:allNodesByLeafId];
-        self.nodesByRank = [NSDictionary dictionaryWithDictionary:allNodesByRank];
-        
+        NSMutableDictionary *mutableNodesByRank = [[NSDictionary dictionaryWithDictionary:allNodesByRank] mutableCopy];
+        mutableNodesByRank[@(100)] = @[ self.life ];
+        self.nodesByRank = [NSDictionary dictionaryWithDictionary:mutableNodesByRank];
+
         // helper sorted list of ranks in the taxonomy
         NSArray *ranks = self.nodesByRank.allKeys;
         self.sortedRanks = [ranks sortedArrayUsingComparator:^NSComparisonResult(NSNumber *rank1, NSNumber *rank2) {
@@ -133,39 +135,25 @@
 
 - (NSDictionary *)aggregateScores:(MLMultiArray *)classification {
     NSMutableDictionary *scores = [NSMutableDictionary dictionary];
-
-    // work from the bottom up
+    
+    // all leaf nodes need to be processed before we can aggregate scores
+    // up the taxonomy tree
     
     // process leaf nodes first
     for (NATNode *node in self.nodes) {
-        if (!node.leafId) {
+        if (node.leafId) {
             // this is a leaf
             NSNumber *score = [classification objectAtIndexedSubscript:node.leafId.integerValue];
             scores[node.taxonId] = score;
         }
     }
     
-    
     // now we can aggregate scores for non-leaf nodes
-    for (NATNode *node in self.nodes) {
-        // this is not a leaf node, so its score is the aggregate of all its children's scores
-        float aggregateScore = 0.0f;
-        for (NATNode *child in node.children) {
-            float childScore = [scores[child.taxonId] floatValue];
-            aggregateScore += childScore;
-        }
-        scores[node.taxonId] = @(aggregateScore);
-    }
-    
-    // work from the bottom up
+    // need to work from the bottom up
     for (NSNumber *rank in self.sortedRanks) {
         NSArray *rankNodes = [self.nodesByRank objectForKey:rank];
         for (NATNode *node in rankNodes) {
-            if (node.leafId) {
-                // this is a leaf node, take its score from the classification output
-                NSNumber *score = [classification objectAtIndexedSubscript:node.leafId.integerValue];
-                scores[node.taxonId] = score;
-            } else {
+            if (!node.leafId) {
                 // this is not a leaf node, so its score is the aggregate of all its children's scores
                 float aggregateScore = 0.0f;
                 for (NATNode *child in node.children) {
@@ -176,7 +164,7 @@
             }
         }
     }
-
+    
     return scores;
 }
 
