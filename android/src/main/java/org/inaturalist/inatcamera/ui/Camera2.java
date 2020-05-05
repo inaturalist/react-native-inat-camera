@@ -1385,6 +1385,10 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 Timber.tag(TAG).e("captureStillPicture - mPreviewRequestBuilder is null");
                 return;
             }
+            if (mCaptureSession == null) {
+                Timber.tag(TAG).e("captureStillPicture - mCaptureSession is null");
+                return;
+            }
 
             CaptureRequest.Builder captureRequestBuilder = mCamera.createCaptureRequest(
                     CameraDevice.TEMPLATE_STILL_CAPTURE);
