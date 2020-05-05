@@ -39,7 +39,7 @@
         self.taxonomy = [[NATTaxonomy alloc] initWithTaxonomyFile:taxonomyPath];
         
         // default prediction threshold
-        self.threshold = .80;
+        self.threshold = 0.70;
         
         [self setupVision];
         

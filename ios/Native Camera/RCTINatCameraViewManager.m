@@ -68,12 +68,18 @@ RCT_REMAP_METHOD(resumePreview,
         return;
     }
     
-    NSDictionary *prediction = [taxa firstObject];
-    NSString *rank = [self rankNameForRankLevel:[[prediction valueForKey:@"rank"] integerValue]];
+    for (NSDictionary *prediction in taxa) {
+        // seek can't display non linnean ranks in the ui, so don't include them in the output
+        // keep walking up the best branch until we hit a node at a KPCOFGS rnak
+        NSString *rankName = [self rankNameForRankLevel:[[prediction valueForKey:@"rank"] integerValue]];
+        if ([rankName length] > 0) {
+            cameraView.onTaxaDetected(@{
+                                        rankName: taxa
+                                        });
+            break;
+        }
+    }
     
-    cameraView.onTaxaDetected(@{
-                                rank: taxa
-                                });
 }
 
 - (void)cameraView:(NATCameraView *)cameraView cameraError:(NSString *)errorString {

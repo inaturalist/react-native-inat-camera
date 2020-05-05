@@ -13,6 +13,8 @@
 
 @interface NATTaxonomy : NSObject
 
+@property BOOL linneanPredictionsOnly;
+
 - (instancetype)initWithTaxonomyFile:(NSString *)taxaFile;
 - (NATPrediction *)inflateTopPredictionFromClassification:(MLMultiArray *)classification confidenceThreshold:(float)threshold;
 - (NSArray *)inflateTopBranchFromClassification:(MLMultiArray *)classification;

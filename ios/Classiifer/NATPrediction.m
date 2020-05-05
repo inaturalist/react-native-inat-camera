@@ -15,6 +15,7 @@
     if (self = [super init]) {
         self.node = node;
         self.score = score;
+        self.rank = node.rank.integerValue;
     }
     
     return self;
@@ -24,6 +25,11 @@
     NSMutableDictionary *mutableNodeDict = [[self.node asDict] mutableCopy];
     mutableNodeDict[@"score"] = @(self.score);
     return [NSDictionary dictionaryWithDictionary:mutableNodeDict];
+}
+
+- (NSString *)description {
+    return [NSString stringWithFormat:@"%ld - %@ - %f",
+            (long)self.rank, self.node.name, self.score];
 }
 
 @end
