@@ -119,8 +119,9 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     private boolean mRunClassifier = false;
     private ImageClassifier mClassifier;
     private long mLastErrorTime = 0;
+    Boolean mLinneanPredictionsOnly = true;
 
-    public static final float DEFAULT_CONFIDENCE_THRESHOLD = 0.8f;
+    public static final float DEFAULT_CONFIDENCE_THRESHOLD = 0.7f;
     private static final int DEFAULT_TAXON_DETECTION_INTERVAL = 1000;
 
     private int mTaxaDetectionInterval = DEFAULT_TAXON_DETECTION_INTERVAL;
@@ -462,6 +463,13 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
         Collections.reverse(predictions);
         for (Prediction prediction : predictions) {
+            if (mLinneanPredictionsOnly) {
+                // only KPCOFGS ranks qualify as "top" predictions
+                // in the iNat taxonomy, KPCOFGS ranks are 70,60,50,40,30,20,10
+                if (prediction.rank % 10 != 0) {
+                    continue;
+                }
+            }
             if (prediction.probability > mConfidenceThreshold) {
                 selectedPrediction = prediction;
                 break;
@@ -625,7 +633,6 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
             result.putString("name", prediction.node.name);
             result.putDouble("score", prediction.probability);
             result.putInt("rank", prediction.node.rank);
-            result.putInt("class_id", Integer.valueOf(prediction.node.classId));
         } catch (NumberFormatException exc) {
             // Invalid node key or class ID
             exc.printStackTrace();

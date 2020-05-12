@@ -12,8 +12,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Arrays;  
-
+import java.util.Arrays;
+import java.util.Collections;
 
 /** Taxonomy data structure */
 public class Taxonomy {
@@ -21,27 +21,10 @@ public class Taxonomy {
 
     List<Node> mNodes;
     Map<String, Node> mNodeByKey;
-    Map<String, Node> mNodeByLeafId;
+    List<Node> mLeaves; // this is a convenience array for testing
     Node mLifeNode;
 
-    List<Node> mSpeciesNodes;
-    List<Node> mGenusNodes;
-    List<Node> mFamilyNodes;
-    List<Node> mOrderNodes;
-    List<Node> mClassNodes;
-    List<Node> mPhylumNodes;
-    List<Node> mKingdomNodes;
-
     Taxonomy(InputStream is) {
-
-        mSpeciesNodes = new ArrayList<>();
-        mGenusNodes = new ArrayList<>();
-        mFamilyNodes = new ArrayList<>();
-        mOrderNodes = new ArrayList<>();
-        mClassNodes = new ArrayList<>();
-        mPhylumNodes = new ArrayList<>();
-        mKingdomNodes = new ArrayList<>();
-
         // Read the taxonomy CSV file into a list of nodes
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
@@ -49,32 +32,12 @@ public class Taxonomy {
             reader.readLine(); // Skip the first line (header line)
 
             mNodes = new ArrayList<>();
+            mLeaves = new ArrayList<>();
             for (String line; (line = reader.readLine()) != null; ) {
                 Node node = new Node(line);
                 mNodes.add(node);
-
-                switch (node.rank) {
-                    case 10:
-                        mSpeciesNodes.add(node);
-                        break;
-                    case 20:
-                        mGenusNodes.add(node);
-                        break;
-                    case 30:
-                        mFamilyNodes.add(node);
-                        break;
-                    case 40:
-                        mOrderNodes.add(node);
-                        break;
-                    case 50:
-                        mClassNodes.add(node);
-                        break;
-                    case 60:
-                        mPhylumNodes.add(node);
-                        break;
-                    case 70:
-                        mKingdomNodes.add(node);
-                        break;
+                if ((node.leafId != null) && (node.leafId.length() > 0)) {
+                    mLeaves.add(node);
                 }
             }
         } catch (IOException e) {
@@ -83,20 +46,18 @@ public class Taxonomy {
 
         // Convert list of nodes into a structure with parents and children
         mNodeByKey = new HashMap<>();
-        mNodeByLeafId = new HashMap<>();
-        
+
         mLifeNode = createLifeNode();
 
         for (Node node: mNodes) {
             mNodeByKey.put(node.key, node);
-
-            if ((node.leafId != null) && (node.leafId.length() > 0)) {
-                mNodeByLeafId.put(node.leafId, node);
-            }
         }
 
+        List<Node> lifeList = new ArrayList<Node>();
+        lifeList.add(mLifeNode);
+
         for (Node node: mNodes) {
-            if ((node.parentKey != null) && (node.parentKey.length() > 0) && (mNodeByKey.containsKey(node.parentKey))) {
+            if ((node.parentKey != null) && (node.parentKey.length() > 0)) {
                 Node parent = mNodeByKey.get(node.parentKey);
                 parent.addChild(node);
             } else {
@@ -110,14 +71,13 @@ public class Taxonomy {
         Node node = new Node();
         node.key = "48460";
         node.rank = 100;
-        node.classId = "0";
         node.name = "Life";
         node.parent = null;
         return node;
     }
 
     public int getModelSize() {
-        return mNodeByLeafId.size();
+        return mLeaves.size();
     }
 
     public List<Prediction> predict(Map<Integer, Object> outputs) {
@@ -133,44 +93,34 @@ public class Taxonomy {
 
     /** Aggregates scores for nodes, including non-leaf nodes (so each non-leaf node has a score of the sum of all its dependents) */
     private Map<String, Float> aggregateScores(float[] results) {
-        List<Prediction> predictions = new ArrayList<>();
-        Map<String, Float> scores = new HashMap<>();
-        
-        // Rank 10: no children
-        for (Node node : mSpeciesNodes) {
-            float score = results[Integer.valueOf(node.leafId)];
-            scores.put(node.key, score);
-        }
+        return aggregateScores(results, mLifeNode);
+    }
 
+    /** Following: https://github.com/inaturalist/inatVisionAPI/blob/multiclass/inferrers/multi_class_inferrer.py#L136 */
+    private Map<String, Float> aggregateScores(float[] results, Node currentNode) {
+        Map<String, Float> allScores = new HashMap<>();
 
-        // Nodes with children
-        List<List<Node>> ranks = Arrays.asList(
-            mGenusNodes, mFamilyNodes, mOrderNodes,
-            mClassNodes, mPhylumNodes, mKingdomNodes
-        );
+        if (currentNode.children.size() > 0) {
+            // we'll populate this and return it
 
-
-        // Work from the bottom up
-        for (List<Node> rankNodes : ranks) {
-            for (Node node : rankNodes) {
-                if ((node.leafId != null) && (node.leafId.length() > 0)) {
-                    // This is a leaf node, take its score from the classification output
-                    float score = results[Integer.valueOf(node.leafId)];
-                    scores.put(node.key, score);
-                } else {
-                    // This is not a leaf node, so its score is the aggregate of all its children's scores
-                    float aggregateScore = 0.0f;
-                    for (Node child : node.children) {
-                        float childScore = scores.get(child.key);
-                        aggregateScore += childScore;
-                    }
-                    scores.put(node.key, aggregateScore);
-                }
+            for (Node child : currentNode.children) {
+                Map<String, Float> childScores = aggregateScores(results, child);
+                allScores.putAll(childScores);
             }
+
+            float thisScore = 0.0f;
+            for (Node child : currentNode.children) {
+                thisScore += allScores.get(child.key);
+            }
+
+            allScores.put(currentNode.key, thisScore);
+
+        } else {
+            // base case, no children
+            allScores.put(currentNode.key, results[Integer.valueOf(currentNode.leafId)]);
         }
 
-
-        return scores;
+        return allScores;
     }
 
 
@@ -181,29 +131,32 @@ public class Taxonomy {
         // Start from life
         Node currentNode = mLifeNode;
 
-        // Always life
-        Prediction lifePrediction = new Prediction(currentNode, 1.0f);
+        float lifeScore = scores.get(currentNode.key);
+        Prediction lifePrediction = new Prediction(currentNode, lifeScore);
         bestBranch.add(lifePrediction);
 
+        List<Node> currentNodeChildren = currentNode.children;
 
-        while (currentNode.children.size() > 0) {
-            // Find the best child of the current node
+        // loop while the last current node (the previous best child node) has more children
+        while (currentNodeChildren.size() > 0) {
+            // find the best child of the current node
             Node bestChild = null;
-            float bestScore = -1;
-            for (Node child : currentNode.children) {
+            float bestChildScore = -1;
+            for (Node child : currentNodeChildren) {
                 float childScore = scores.get(child.key);
-                if (childScore > bestScore) {
-                    bestScore = childScore;
+                if (childScore > bestChildScore) {
+                    bestChildScore = childScore;
                     bestChild = child;
                 }
             }
 
-            // Add the prediction for this best child to the branch
-            Prediction bestChildPrediction = new Prediction(bestChild, bestScore);
-            bestBranch.add(bestChildPrediction);
+            if (bestChild != null) {
+                Prediction bestChildPrediction = new Prediction(bestChild, bestChildScore);
+                bestBranch.add(bestChildPrediction);
+            }
 
-            // Redo the loop, looking for the best sub-child among this best child
             currentNode = bestChild;
+            currentNodeChildren = currentNode.children;
         }
 
         return bestBranch;
