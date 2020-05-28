@@ -174,7 +174,6 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
                 Promise promise = mPictureTakenPromises.poll();
                 if (promise == null) {
-                    promise.resolve(null);
                     return;
                 }
                 ReadableMap options = mPictureTakenOptions.remove(promise);

@@ -2,6 +2,7 @@ package org.inaturalist.inatcamera.nativecamera;
 
 import timber.log.*;
 
+import java.util.ArrayList;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.util.Log;
@@ -211,8 +212,10 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                     Timber.tag(TAG).d("doInBackground 11");
                     fileExifData = Arguments.createMap();
                     fileExifData.merge(exifData);
-                    fileExifData.putInt("width", mBitmap.getWidth());
-                    fileExifData.putInt("height", mBitmap.getHeight());
+                    if (mBitmap != null) {
+                        fileExifData.putInt("width", mBitmap.getWidth());
+                        fileExifData.putInt("height", mBitmap.getHeight());
+                    }
                     if (fixOrientation) {
                         fileExifData.putInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
                     }
@@ -229,14 +232,21 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
             }
 
             // Upon rotating, write the image's dimensions to the response
-            response.putInt("width", mBitmap.getWidth());
-            response.putInt("height", mBitmap.getHeight());
+            if (mBitmap != null) {
+                response.putInt("width", mBitmap.getWidth());
+                response.putInt("height", mBitmap.getHeight());
+            }
 
             Timber.tag(TAG).d("doInBackground 13");
             Timber.tag(TAG).d("doInBackground 14");
 
             // Get predictions for that image
-            List<Prediction> predictions = mCameraView.getPredictionsForImage(mBitmap);
+            List<Prediction> predictions;
+            if (mBitmap != null) {
+                predictions = mCameraView.getPredictionsForImage(mBitmap);
+            } else {
+                predictions = new ArrayList<>();
+            }
             Timber.tag(TAG).d("doInBackground 15");
             mCameraView.fillResults(response, predictions);
             Timber.tag(TAG).d("doInBackground 16");
