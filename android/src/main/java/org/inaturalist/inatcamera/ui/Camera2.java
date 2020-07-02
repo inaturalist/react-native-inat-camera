@@ -901,6 +901,9 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         mPictureSizes.clear();
         collectPictureSizes(mPictureSizes, map);
         if (mPictureSize == null) {
+            if (!mPreviewSizes.ratios().contains(mAspectRatio)) {
+                mAspectRatio = mPreviewSizes.ratios().iterator().next();
+            }
             mPictureSize = mPictureSizes.sizes(mAspectRatio).last();
         }
         for (AspectRatio ratio : mPreviewSizes.ratios()) {
