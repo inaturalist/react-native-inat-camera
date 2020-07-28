@@ -18,6 +18,7 @@ package org.inaturalist.inatcamera.ui;
 
 import timber.log.*;
 import android.annotation.TargetApi;
+import java.util.Iterator;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
@@ -901,10 +902,13 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         mPictureSizes.clear();
         collectPictureSizes(mPictureSizes, map);
         if (mPictureSize == null) {
-            if (!mPreviewSizes.ratios().contains(mAspectRatio)) {
-                mAspectRatio = mPreviewSizes.ratios().iterator().next();
+            Iterator<AspectRatio> iterator = mPreviewSizes.ratios().iterator();
+            while (!mPreviewSizes.ratios().contains(mAspectRatio) && iterator.hasNext()) {
+                mAspectRatio = iterator.next();
             }
-            mPictureSize = mPictureSizes.sizes(mAspectRatio).last();
+            if (!mPreviewSizes.isEmpty()) {
+                mPictureSize = mPictureSizes.sizes(mAspectRatio).last();
+            }
         }
         for (AspectRatio ratio : mPreviewSizes.ratios()) {
             if (!mPictureSizes.ratios().contains(ratio)) {
