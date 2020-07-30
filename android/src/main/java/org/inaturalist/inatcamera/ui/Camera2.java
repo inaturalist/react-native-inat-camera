@@ -132,6 +132,10 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 Timber.tag(TAG).e("onConfigured - mPreviewRequestBuilder is null");
                 return;
             }
+            if (session == null) {
+                Timber.tag(TAG).e("onConfigured - session is null");
+                return;
+            }
 
             mCaptureSession = session;
             mInitialCropRegion = mPreviewRequestBuilder.get(CaptureRequest.SCALER_CROP_REGION);
