@@ -128,6 +128,17 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     private long mLastPredictionTime = 0;
     private float mConfidenceThreshold = DEFAULT_CONFIDENCE_THRESHOLD;
 
+    private Integer mFilterByTaxonId = null; // If null -> no filter by taxon ID defined
+    private boolean mNegativeFilter = false;
+
+    public void setFilterByTaxonId(Integer taxonId) {
+        mFilterByTaxonId = taxonId;
+    }
+
+    public void setNegativeFilter(boolean negative) {
+        mNegativeFilter = negative;
+    }
+
     public void setConfidenceThreshold(float confidence) {
         mConfidenceThreshold = confidence;
     }
@@ -331,6 +342,8 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
         if (mClassifier == null) {
             try {
                 mClassifier = new ImageClassifier(mModelFilename, mTaxonomyFilename);
+                mClassifier.setFilterByTaxonId(mFilterByTaxonId);
+                mClassifier.setNegativeFilter(mNegativeFilter);
             } catch (IOException e) {
                 e.printStackTrace();
                 onClassifierError("Failed to initialize an image mClassifier: " + e.getMessage());
@@ -475,7 +488,9 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
             }
         }
 
-        onTaxaDetected(selectedPrediction);
+        if (selectedPrediction != null) {
+            onTaxaDetected(selectedPrediction);
+        }
     }
 
     /** Retrieves predictions for a single frame */
@@ -603,6 +618,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
         Map<Integer, WritableArray> ranks = new HashMap<>();
 
         for (Prediction prediction : predictions) {
+            if (prediction == null) continue;
             WritableMap result = nodeToMap(prediction);
             if (result == null) continue;
 
@@ -626,6 +642,8 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     /** Converts a prediction result to a map */
     public static WritableMap nodeToMap(Prediction prediction) {
         WritableMap result = Arguments.createMap();
+
+        if (prediction.node == null) return null;
 
         try {
             result.putInt("taxon_id", Integer.valueOf(prediction.node.key));

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.Collections;
+import timber.log.*;
 
 /** Taxonomy data structure */
 public class Taxonomy {
@@ -23,6 +24,27 @@ public class Taxonomy {
     Map<String, Node> mNodeByKey;
     List<Node> mLeaves; // this is a convenience array for testing
     Node mLifeNode;
+
+    private Integer mFilterByTaxonId = null; // If null -> no filter by taxon ID defined
+    private boolean mNegativeFilter = false;
+
+    public void setFilterByTaxonId(Integer taxonId) {
+        Timber.tag(TAG).d("setFilterByTaoxnId: " + taxonId);
+        mFilterByTaxonId = taxonId;
+    }
+
+    public Integer getFilterByTaxonId() {
+        return mFilterByTaxonId;
+    }
+
+    public void setNegativeFilter(boolean negative) {
+        Timber.tag(TAG).d("setNegativeFilter: " + negative);
+        mNegativeFilter = negative;
+    }
+
+    public boolean getNegativeFilter() {
+        return mNegativeFilter;
+    }
 
     Taxonomy(InputStream is) {
         // Read the taxonomy CSV file into a list of nodes
@@ -117,10 +139,35 @@ public class Taxonomy {
 
         } else {
             // base case, no children
-            allScores.put(currentNode.key, results[Integer.valueOf(currentNode.leafId)]);
+            boolean resetScore = false;
+
+            if (mFilterByTaxonId != null) {
+                // Filter
+
+                // Reset current prediction score if:
+                // A) Negative filter + prediction does contain taxon ID as ancestor
+                // B) Non-negative filter + prediction does not contain taxon ID as ancestor
+                boolean containsAncestor = hasAncestor(currentNode, mFilterByTaxonId.toString());
+                resetScore = (containsAncestor && mNegativeFilter) || (!containsAncestor && !mNegativeFilter);
+            }
+
+            allScores.put(currentNode.key, resetScore ? 0.0f : results[Integer.valueOf(currentNode.leafId)]);
         }
 
         return allScores;
+    }
+
+    /** Returns whether or not this taxon node has an ancestor with a specified taxon ID */
+    private boolean hasAncestor(Node node, String taxonId) {
+        if (node.key.equals(taxonId)) {
+            return true;
+        } else if (node.parent != null) {
+            // Climb up the tree
+            return hasAncestor(node.parent, taxonId);
+        } else {
+            // Reach to life node (root node) without finding that taxon ID
+            return false;
+        }
     }
 
 

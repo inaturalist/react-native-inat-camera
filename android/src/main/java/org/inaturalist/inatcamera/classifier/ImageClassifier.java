@@ -23,7 +23,7 @@ import java.util.List;
 public class ImageClassifier {
 
     /** Tag for the {@link Log}. */
-    private static final String TAG = "TfLiteCameraDemo";
+    private static final String TAG = "ImageClassifier";
 
     /** Dimensions of inputs. */
     private static final int DIM_BATCH_SIZE = 1;
@@ -49,6 +49,22 @@ public class ImageClassifier {
 
     /** A ByteBuffer to hold image data, to be feed into Tensorflow Lite as inputs. */
     private ByteBuffer imgData;
+
+    public void setFilterByTaxonId(Integer taxonId) {
+        mTaxonomy.setFilterByTaxonId(taxonId);
+    }
+
+    public Integer getFilterByTaxonId() {
+        return mTaxonomy.getFilterByTaxonId();
+    }
+
+    public void setNegativeFilter(boolean negative) {
+        mTaxonomy.setNegativeFilter(negative);
+    }
+
+    public boolean getNegativeFilter() {
+        return mTaxonomy.getNegativeFilter();
+    }
 
 
     /** Initializes an {@code ImageClassifier}. */

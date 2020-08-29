@@ -27,6 +27,16 @@ public class INatCameraViewManager extends SimpleViewManager<RNCameraView> {
         return new RNCameraView(reactContext);
     }
 
+    @ReactProp(name = "filterByTaxonId")
+    public void setFilterByTaxonId(RNCameraView view, String taxonId) {
+        view.setFilterByTaxonId(taxonId != null ? Integer.valueOf(taxonId) : null);
+    }
+
+    @ReactProp(name = "negativeFilter")
+    public void setNegativeFilter(RNCameraView view, Boolean negative) {
+        view.setNegativeFilter(negative != null ? negative : false);
+    }
+
     @ReactProp(name = "taxaDetectionInterval")
     public void setTaxaDetectionInterval(RNCameraView view, String interval) {
         view.setDetectionInterval(Integer.valueOf(interval));
