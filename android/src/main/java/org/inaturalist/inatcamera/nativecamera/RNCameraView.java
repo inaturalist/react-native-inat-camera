@@ -133,10 +133,16 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
     public void setFilterByTaxonId(Integer taxonId) {
         mFilterByTaxonId = taxonId;
+        if (mClassifier != null) {
+            mClassifier.setFilterByTaxonId(mFilterByTaxonId);
+        }
     }
 
     public void setNegativeFilter(boolean negative) {
         mNegativeFilter = negative;
+        if (mClassifier != null) {
+            mClassifier.setNegativeFilter(mNegativeFilter);
+        }
     }
 
     public void setConfidenceThreshold(float confidence) {
