@@ -952,6 +952,18 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             mScanImageReader.close();
         }
         Size largest = mPreviewSizes.sizes(mAspectRatio).last();
+        if (largest == null) {
+            Iterator<Size> iterator = mPreviewSizes.sizes(mAspectRatio).iterator();
+            Size nextLargest = null;
+            while ((nextLargest == null) && iterator.hasNext()) {
+                nextLargest = iterator.next();
+            }
+            if (nextLargest == null) {
+                largest = mPictureSize;
+            } else {
+                largest = nextLargest;
+            }
+        }
         mScanImageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(),
                 ImageFormat.YUV_420_888, 1);
         mScanImageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
