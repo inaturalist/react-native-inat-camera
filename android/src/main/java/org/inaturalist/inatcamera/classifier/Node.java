@@ -10,7 +10,7 @@ public class Node {
 
     public String parentKey;
 
-    public int rank;
+    public float rank;
 
     public String leafId;
 
@@ -32,7 +32,7 @@ public class Node {
 
         this.parentKey = parts[0];
         this.key = parts[1];
-        this.rank = Integer.parseInt(parts[2]);
+        this.rank = Float.parseFloat(parts[2]);
         this.leafId = parts[3];
         this.name = parts[4];
     }

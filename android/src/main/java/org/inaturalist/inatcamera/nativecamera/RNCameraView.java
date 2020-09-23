@@ -621,7 +621,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     private WritableMap predictionsToMap(Collection<Prediction> predictions) {
         WritableMap event = Arguments.createMap();
 
-        Map<Integer, WritableArray> ranks = new HashMap<>();
+        Map<Float, WritableArray> ranks = new HashMap<>();
 
         for (Prediction prediction : predictions) {
             if (prediction == null) continue;
@@ -655,7 +655,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
             result.putInt("taxon_id", Integer.valueOf(prediction.node.key));
             result.putString("name", prediction.node.name);
             result.putDouble("score", prediction.probability);
-            result.putInt("rank", prediction.node.rank);
+            result.putDouble("rank", prediction.node.rank);
         } catch (NumberFormatException exc) {
             // Invalid node key or class ID
             exc.printStackTrace();
