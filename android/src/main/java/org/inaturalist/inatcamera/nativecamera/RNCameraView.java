@@ -54,37 +54,39 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
     private static final int LAST_PREDICTIONS_COUNT = 5;
 
-    private static final Map<Integer, String> RANK_LEVEL_TO_NAME;
+    private static final Map<Float, String> RANK_LEVEL_TO_NAME;
     static {
-        Map<Integer, String> map = new HashMap<>() ;
+        Map<Float, String> map = new HashMap<>() ;
 
-        map.put(100, "stateofmatter");
-        map.put(70, "kingdom");
-        map.put(67, "subkingdom");
-        map.put(60, "phylum");
-        map.put(57, "subphylum");
-        map.put(53, "superclass");
-        map.put(50, "class");
-        map.put(47, "subclass");
-        map.put(45, "infraclass");
-        map.put(43, "superorder");
-        map.put(40, "order");
-        map.put(37, "suborder");
-        map.put(35, "infraorder");
-        map.put(34, "zoosection");
-        map.put(33, "superfamily");
-        map.put(32, "epifamily");
-        map.put(30, "family");
-        map.put(27, "subfamily");
-        map.put(26, "supertribe");
-        map.put(25, "tribe");
-        map.put(24, "subtribe");
-        map.put(20, "genus");
-        map.put(15, "subgenus");
-        map.put(13, "section");
-        map.put(12, "subsection");
-        map.put(10, "species");
-        map.put(5, "subspecies");
+        map.put(100f, "stateofmatter");
+        map.put(70f, "kingdom");
+        map.put(67f, "subkingdom");
+        map.put(60f, "phylum");
+        map.put(57f, "subphylum");
+        map.put(53f, "superclass");
+        map.put(50f, "class");
+        map.put(47f, "subclass");
+        map.put(45f, "infraclass");
+        map.put(43f, "superorder");
+        map.put(40f, "order");
+        map.put(37f, "suborder");
+        map.put(35f, "infraorder");
+        map.put(34.5f, "parvorder");
+        map.put(34f, "zoosection");
+        map.put(33.5f, "zoosubsection");
+        map.put(33f, "superfamily");
+        map.put(32f, "epifamily");
+        map.put(30f, "family");
+        map.put(27f, "subfamily");
+        map.put(26f, "supertribe");
+        map.put(25f, "tribe");
+        map.put(24f, "subtribe");
+        map.put(20f, "genus");
+        map.put(15f, "subgenus");
+        map.put(13f, "section");
+        map.put(12f, "subsection");
+        map.put(10f, "species");
+        map.put(5f, "subspecies");
 
         RANK_LEVEL_TO_NAME = Collections.unmodifiableMap(map);
     }
@@ -636,7 +638,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
         }
 
         // Convert from rank level to rank name
-        for (Integer rank : RANK_LEVEL_TO_NAME.keySet()) {
+        for (Float rank : RANK_LEVEL_TO_NAME.keySet()) {
             if (ranks.containsKey(rank)) {
                 event.putArray(RANK_LEVEL_TO_NAME.get(rank), ranks.get(rank));
             }
