@@ -890,7 +890,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * {@link #mCameraOrientation}, and optionally, {@link #mAspectRatio}.</p>
      */
     private void collectCameraInfo() {
-        Timber.tag(TAG).d("collectCameraInfo 1");
+        Timber.tag(TAG).d("collectCameraInfo 1 - current aspect ratio: " + mAspectRatio);
 
         StreamConfigurationMap map = mCameraCharacteristics.get(
                 CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
@@ -911,8 +911,22 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         collectPictureSizes(mPictureSizes, map);
         if (mPictureSize == null) {
             Iterator<AspectRatio> iterator = mPreviewSizes.ratios().iterator();
+
+            while (iterator.hasNext()) {
+                AspectRatio ratio = iterator.next();
+                Timber.tag(TAG).d(String.format("collectCameraInfo 3a - ratio: " + ratio));
+                SortedSet<Size> sizes = mPictureSizes.sizes(ratio);
+                Timber.tag(TAG).d(String.format("collectCameraInfo 3a - sizes for ratio: " + sizes));
+                if (sizes != null && sizes.size() > 0) {
+                    Timber.tag(TAG).d(String.format("collectCameraInfo 3a - last size for ratio: " + sizes.last()));
+                }
+            }
+
+            iterator = mPreviewSizes.ratios().iterator();
+
             while ((!mPreviewSizes.ratios().contains(mAspectRatio) || mPictureSizes.sizes(mAspectRatio) == null) && iterator.hasNext()) {
                 mAspectRatio = iterator.next();
+                Timber.tag(TAG).d(String.format("collectCameraInfo 3b - setting aspect ratio: " + mAspectRatio));
             }
             Timber.tag(TAG).d(String.format("collectCameraInfo 4 - picture sizes: " + mPictureSizes.ratios().size()));
             if (!mPictureSizes.isEmpty()) {

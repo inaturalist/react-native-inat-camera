@@ -159,6 +159,7 @@ public class AspectRatio implements Comparable<AspectRatio>, Parcelable {
         return a;
     }
 
+
     @Override
     public int describeContents() {
         return 0;
