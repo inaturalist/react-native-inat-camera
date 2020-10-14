@@ -21,10 +21,12 @@ import android.content.Context;
 import android.graphics.ImageFormat;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Handler;
+import timber.log.*;
 
 
 @TargetApi(23)
 class Camera2Api23 extends Camera2 {
+    private static final String TAG = "Camera2Api23";
 
     Camera2Api23(Callback callback, PreviewImpl preview, Context context, Handler bgHandler) {
         super(callback, preview, context, bgHandler);
@@ -34,8 +36,11 @@ class Camera2Api23 extends Camera2 {
     protected void collectPictureSizes(SizeMap sizes, StreamConfigurationMap map) {
         // Try to get hi-res output sizes
         android.util.Size[] outputSizes = map.getHighResolutionOutputSizes(ImageFormat.JPEG);
+        Timber.tag(TAG).d(String.format(String.format("collectPictureSizes (API23) - outputSizes = %s", outputSizes != null ? outputSizes.toString() : null)));
+
         if (outputSizes != null) {
             for (android.util.Size size : map.getHighResolutionOutputSizes(ImageFormat.JPEG)) {
+                Timber.tag(TAG).d(String.format(String.format("collectPictureSizes (API23) - adding - %d x %d - ratio %s", size.getWidth(), size.getHeight(), AspectRatio.of(size.getWidth(), size.getHeight()))));
                 sizes.add(new Size(size.getWidth(), size.getHeight()));
             }
         }

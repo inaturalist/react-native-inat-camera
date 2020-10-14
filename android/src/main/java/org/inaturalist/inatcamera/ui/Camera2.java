@@ -480,7 +480,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 Timber.tag(TAG).d("setPictureSize 2");
                 return;
             }
-            mPictureSizes.sizes(mAspectRatio).last();
+            mPictureSize = mPictureSizes.sizes(mAspectRatio).last();
         } else {
             mPictureSize = size;
         }
@@ -892,6 +892,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
     private void collectCameraInfo() {
         StreamConfigurationMap map = mCameraCharacteristics.get(
                 CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+        Timber.tag(TAG).d("collectCameraInfo 1 - " + map);
         if (map == null) {
             throw new IllegalStateException("Failed to get configuration map: " + mCameraId);
         }
@@ -900,18 +901,31 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             int width = size.getWidth();
             int height = size.getHeight();
             if (width <= MAX_PREVIEW_WIDTH && height <= MAX_PREVIEW_HEIGHT) {
+                Timber.tag(TAG).d(String.format("collectCameraInfo 2 - adding preview size: %d x %d ==> %s", width, height, AspectRatio.of(width, height)));
                 mPreviewSizes.add(new Size(width, height));
+            } else {
+                Timber.tag(TAG).d(String.format("collectCameraInfo 2 - skipping preview size: %d x %d ==> %s", width, height, AspectRatio.of(width, height)));
             }
         }
         mPictureSizes.clear();
         collectPictureSizes(mPictureSizes, map);
         if (mPictureSize == null) {
-            Iterator<AspectRatio> iterator = mPreviewSizes.ratios().iterator();
-            while (!mPreviewSizes.ratios().contains(mAspectRatio) && iterator.hasNext()) {
-                mAspectRatio = iterator.next();
-            }
-            if (!mPreviewSizes.isEmpty()) {
+            Timber.tag(TAG).d(String.format("collectCameraInfo 3 - setting picture size, mAspectRatio = %s, %s", mAspectRatio, mPictureSizes.sizes(mAspectRatio)));
+
+            if (mPictureSizes.sizes(mAspectRatio) != null) {
                 mPictureSize = mPictureSizes.sizes(mAspectRatio).last();
+            } else {
+                // Revert to non-API 23 picture size collection
+                mPictureSizes.clear();
+                collectPictureSizesNonAPI23(mPictureSizes, map);
+                Timber.tag(TAG).d(String.format("collectCameraInfo 3b - setting picture size (non API23), mAspectRatio = %s, %s", mAspectRatio, mPictureSizes.sizes(mAspectRatio)));
+
+                if (mPictureSizes.sizes(mAspectRatio) != null) {
+                    mPictureSize = mPictureSizes.sizes(mAspectRatio).last();
+                } else {
+                    Timber.tag(TAG).d(String.format("collectCameraInfo 3c - setting picture size from preview, mAspectRatio = %s, %s", mAspectRatio, mPreviewSizes.sizes(mAspectRatio)));
+                    mPictureSize = mPreviewSizes.sizes(mAspectRatio).last();
+                }
             }
         }
         for (AspectRatio ratio : mPreviewSizes.ratios()) {
@@ -928,11 +942,16 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
     }
 
     protected void collectPictureSizes(SizeMap sizes, StreamConfigurationMap map) {
+        collectPictureSizesNonAPI23(sizes, map);
+    }
+
+    protected void collectPictureSizesNonAPI23(SizeMap sizes, StreamConfigurationMap map) {
+        Timber.tag(TAG).d(String.format(String.format("collectPictureSizes (<23) - image format = %s; map = %s", mImageFormat, map)));
         for (android.util.Size size : map.getOutputSizes(mImageFormat)) {
+            Timber.tag(TAG).d(String.format(String.format("collectPictureSizes (<23) - adding - %d x %d - ratio %s", size.getWidth(), size.getHeight(), AspectRatio.of(size.getWidth(), size.getHeight()))));
             mPictureSizes.add(new Size(size.getWidth(), size.getHeight()));
         }
     }
-
     private void prepareStillImageReader() {
         if (mStillImageReader != null) {
             mStillImageReader.close();
@@ -950,6 +969,18 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             mScanImageReader.close();
         }
         Size largest = mPreviewSizes.sizes(mAspectRatio).last();
+        if (largest == null) {
+            Iterator<Size> iterator = mPreviewSizes.sizes(mAspectRatio).iterator();
+            Size nextLargest = null;
+            while ((nextLargest == null) && iterator.hasNext()) {
+                nextLargest = iterator.next();
+            }
+            if (nextLargest == null) {
+                largest = mPictureSize;
+            } else {
+                largest = nextLargest;
+            }
+        }
         mScanImageReader = ImageReader.newInstance(largest.getWidth(), largest.getHeight(),
                 ImageFormat.YUV_420_888, 1);
         mScanImageReader.setOnImageAvailableListener(mOnImageAvailableListener, null);
