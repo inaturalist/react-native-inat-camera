@@ -4,9 +4,11 @@ import android.graphics.Bitmap;
 import android.os.SystemClock;
 import android.util.Log;
 import timber.log.*;
+import java.util.Date;
 
 import org.tensorflow.lite.Interpreter;
 
+import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -39,7 +41,12 @@ public class ImageClassifier {
     private final Taxonomy mTaxonomy;
     private final String mModelFilename;
     private final String mTaxonomyFilename;
+    private final String mOfflineFrequencyFilename;
     private int mModelSize;
+    private OfflineFrequency mOfflineFrequency;
+    private Date mFrequencyDate;
+    private float mFrequencyLatitude;
+    private float mFrequencyLongitude;
 
     /* Preallocated buffers for storing image data in. */
     private int[] intValues = new int[DIM_IMG_SIZE_X * DIM_IMG_SIZE_Y];
@@ -54,6 +61,10 @@ public class ImageClassifier {
         mTaxonomy.setFilterByTaxonId(taxonId);
     }
 
+    public void setThreshold(Float threshold) {
+        mTaxonomy.setThreshold(threshold);
+    }
+
     public Integer getFilterByTaxonId() {
         return mTaxonomy.getFilterByTaxonId();
     }
@@ -66,11 +77,21 @@ public class ImageClassifier {
         return mTaxonomy.getNegativeFilter();
     }
 
+    public void setFrequencyDate(Date date) {
+        mFrequencyDate = date;
+    }
+
+    public void setFrequencyLocation(float latitude, float longitude) {
+        mFrequencyLatitude = latitude;
+        mFrequencyLongitude = longitude;
+    }
 
     /** Initializes an {@code ImageClassifier}. */
-    public ImageClassifier(String modelPath, String taxonomyPath) throws IOException {
+    public ImageClassifier(String modelPath, String taxonomyPath, String offlineFrequencyPath) throws IOException {
         mModelFilename = modelPath;
         mTaxonomyFilename = taxonomyPath;
+        mOfflineFrequencyFilename = offlineFrequencyPath;
+        if (mOfflineFrequencyFilename != null) mOfflineFrequency = new OfflineFrequency(mOfflineFrequencyFilename);
         mTFlite = new Interpreter(loadModelFile());
         imgData =
                 ByteBuffer.allocateDirect(
@@ -111,7 +132,12 @@ public class ImageClassifier {
             exc.printStackTrace();
             return new ArrayList<Prediction>();
         }
-        List<Prediction> predictions = mTaxonomy.predict(expectedOutputs);
+
+        List<JsonObject> frequencyResults = null;
+        if (mOfflineFrequency != null) {
+            frequencyResults = mOfflineFrequency.query(mFrequencyDate, mFrequencyLatitude, mFrequencyLongitude);
+        }
+        List<Prediction> predictions = mTaxonomy.predict(expectedOutputs, frequencyResults);
         long endTime = SystemClock.uptimeMillis();
 
         return predictions;

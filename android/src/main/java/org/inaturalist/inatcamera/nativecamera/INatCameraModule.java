@@ -1,8 +1,10 @@
 package org.inaturalist.inatcamera.nativecamera;
 
+import java.text.ParseException;
 import android.annotation.SuppressLint;
 import android.util.Log;
-
+import java.util.Date;
+import java.text.SimpleDateFormat;
 import org.inaturalist.inatcamera.classifier.ImageClassifier;
 import android.graphics.Bitmap;
 import java.io.File;
@@ -34,6 +36,9 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
     public static final String OPTION_URI = "uri";
     public static final String OPTION_TAXONOMY_FILENAME = "taxonomyFilename";
     public static final String OPTION_MODEL_FILENAME = "modelFilename";
+    public static final String OPTION_OFFLINE_FREQUENCY_FILENAME = "offlineFrequencyFilename";
+    public static final String OPTION_FREQUENCY_DATE = "offlineFrequencyDate";
+    public static final String OPTION_FREQUENCY_LOCATION = "offlineFrequencyLocation";
 
     private ReactApplicationContext mContext;
 
@@ -118,11 +123,34 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
         String uri = options.getString(OPTION_URI);
         String modelFilename = options.getString(OPTION_MODEL_FILENAME);
         String taxonomyFilename = options.getString(OPTION_TAXONOMY_FILENAME);
+        String offlineFrequencyFilename = options.getString(OPTION_OFFLINE_FREQUENCY_FILENAME);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy/MM/dd");
+        Date offlineFrequencyDate = null;
+        Float offlineFrequencyLatitude = null;
+        Float offlineFrequencyLongitude = null;
+        String dateString = options.getString(OPTION_FREQUENCY_DATE);
+        String location = options.getString(OPTION_FREQUENCY_LOCATION);
+        if ((dateString != null) && (location != null)) {
+            String[] parts = location.split(",");
+            String latString = parts[0];
+            String lngString = parts[1];
+            try {
+                offlineFrequencyDate = format.parse(dateString);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            offlineFrequencyLatitude = Float.valueOf(latString);
+            offlineFrequencyLongitude = Float.valueOf(lngString);
+        }
 
         ImageClassifier classifier = null;
 
         try {
-            classifier = new ImageClassifier(modelFilename, taxonomyFilename);
+            classifier = new ImageClassifier(modelFilename, taxonomyFilename, offlineFrequencyFilename);
+            if ((offlineFrequencyDate != null) && (offlineFrequencyLatitude != null) && (offlineFrequencyLongitude != null)) {
+                classifier.setFrequencyDate(offlineFrequencyDate);
+                classifier.setFrequencyLocation(offlineFrequencyLatitude, offlineFrequencyLongitude);
+            }
         } catch (IOException e) {
             e.printStackTrace();
             promise.reject("E_CLASSIFIER", "Failed to initialize an image mClassifier: " + e.getMessage());

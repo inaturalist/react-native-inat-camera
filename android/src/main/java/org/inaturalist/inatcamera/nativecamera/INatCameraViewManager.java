@@ -7,6 +7,10 @@ import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.bridge.ReactMethod;
 import android.widget.Toast;
 import org.inaturalist.inatcamera.nativecamera.RNCameraView;
+import java.text.SimpleDateFormat;
+import java.text.ParseException;
+import timber.log.*;
+
 
 import java.util.Map;
 
@@ -25,6 +29,22 @@ public class INatCameraViewManager extends SimpleViewManager<RNCameraView> {
     protected RNCameraView createViewInstance(ThemedReactContext reactContext) {
         mContext = reactContext;
         return new RNCameraView(reactContext);
+    }
+
+    @ReactProp(name = "offlineFrequencyDate")
+    public void setOfflineFrequencyDate(RNCameraView view, String date) {
+        SimpleDateFormat format = new SimpleDateFormat("yyyy/MM/dd");
+        try {
+            view.setOfflineFrequencyDate(format.parse(date));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @ReactProp(name = "offlineFrequencyLocation")
+    public void setOfflineFrequencyLocation(RNCameraView view, String location) {
+        String parts[] = location.split(",");
+        view.setOfflineFrequencyLocation(Float.valueOf(parts[0]), Float.valueOf(parts[1]));
     }
 
     @ReactProp(name = "filterByTaxonId")
@@ -55,6 +75,11 @@ public class INatCameraViewManager extends SimpleViewManager<RNCameraView> {
     @ReactProp(name = "taxonomyPath")
     public void setTaxonomyPath(RNCameraView view, String path) {
         view.setTaxonomyFilename(path);
+    }
+
+    @ReactProp(name = "offlineFrequencyPath")
+    public void setOfflineFrequencyPath(RNCameraView view, String path) {
+        view.setOfflineFrequencyFilename(path);
     }
 
     @Override

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Arrays;
 import java.util.Collections;
+import com.google.gson.JsonObject;
 import timber.log.*;
 
 /** Taxonomy data structure */
@@ -24,6 +25,7 @@ public class Taxonomy {
     Map<String, Node> mNodeByKey;
     List<Node> mLeaves; // this is a convenience array for testing
     Node mLifeNode;
+    Float mThreadshold; // Minimum threshold, below which scores will get reset to zero
 
     private Integer mFilterByTaxonId = null; // If null -> no filter by taxon ID defined
     private boolean mNegativeFilter = false;
@@ -44,6 +46,10 @@ public class Taxonomy {
 
     public boolean getNegativeFilter() {
         return mNegativeFilter;
+    }
+
+    public void setThreshold(Float threshold) {
+        mThreadshold = threshold;
     }
 
     Taxonomy(InputStream is) {
@@ -102,14 +108,52 @@ public class Taxonomy {
         return mLeaves.size();
     }
 
-    public List<Prediction> predict(Map<Integer, Object> outputs) {
+    public List<Prediction> predict(Map<Integer, Object> outputs, List<JsonObject> frequencyResults) {
         // Get raw predictions
         float[] results = ((float[][]) outputs.get(0))[0];
 
         Map<String, Float> scores = aggregateScores(results);
+        if (frequencyResults != null) {
+            calculateFrequencyScores(scores, frequencyResults);
+        }
         List<Prediction> bestBranch = buildBestBranchFromScores(scores);
         
         return bestBranch;
+    }
+
+    /** Adds frequency scores - based on: https://github.com/inaturalist/iNaturalistAPI/blob/main/lib/controllers/v1/computervision_controller.js#L242 */
+    private void calculateFrequencyScores(Map<String, Float> scores, List<JsonObject> frequencyResults) {
+        int sumScore = 0;
+        Map<String, Float> frequencyMap = new HashMap<>();
+
+        for (JsonObject frequencyResult : frequencyResults) {
+            sumScore += frequencyResult.get("c").getAsInt();
+            frequencyMap.put(frequencyResult.get("i").getAsString(), frequencyResult.get("c").getAsFloat());
+        }
+
+        for (String taxonId : scores.keySet()) {
+            float score = scores.get(taxonId);
+
+            if (frequencyMap.containsKey(taxonId)) {
+                // Vision results with relevant frequency scores get a boost
+                float frequencyScore = (frequencyMap.get(taxonId) / sumScore) * 20;
+
+                if (score > 0) {
+                    // Timber.tag(TAG).d(String.format("%s: Freq score: %f; prev: %f; count: %f / %d", taxonId, frequencyScore, score, frequencyMap.get(taxonId), sumScore));
+                    score += frequencyScore;
+                    scores.put(taxonId, score > 1f ? 1f : score);
+                }
+            } else {
+                // Everything else uses the raw vision score - do nothing
+            }
+        }
+
+        // Add any results not from vision
+        for (String taxonId : frequencyMap.keySet()) {
+            if (!scores.containsKey(taxonId)) {
+                scores.put(taxonId, (frequencyMap.get(taxonId) / sumScore) * 0.75f);
+            }
+        }
     }
 
 
@@ -151,7 +195,13 @@ public class Taxonomy {
                 resetScore = (containsAncestor && mNegativeFilter) || (!containsAncestor && !mNegativeFilter);
             }
 
-            allScores.put(currentNode.key, resetScore ? 0.0f : results[Integer.valueOf(currentNode.leafId)]);
+            float score = results[Integer.valueOf(currentNode.leafId)];
+
+            if ((mThreadshold != null) && (!resetScore)) {
+                resetScore = score < mThreadshold;
+            }
+
+            allScores.put(currentNode.key, resetScore ? 0.0f : score);
         }
 
         return allScores;

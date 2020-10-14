@@ -1,5 +1,6 @@
 package org.inaturalist.inatcamera.nativecamera;
 
+import java.util.Date;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.pm.PackageManager;
@@ -108,6 +109,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
     private String mModelFilename;
     private String mTaxonomyFilename;
+    private String mOfflineFrequencyFilename;
     private boolean mDeviceSupported;
 
     // Reasons why the device is not supported
@@ -133,6 +135,10 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     private Integer mFilterByTaxonId = null; // If null -> no filter by taxon ID defined
     private boolean mNegativeFilter = false;
 
+    Date mOfflineFrequencyDate = null;
+    Float mOfflineFrequencyLatitude = null;
+    Float mOfflineFrequencyLongitude = null;
+
     public void setFilterByTaxonId(Integer taxonId) {
         mFilterByTaxonId = taxonId;
         if (mClassifier != null) {
@@ -147,8 +153,26 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
         }
     }
 
+    public void setOfflineFrequencyDate(Date date) {
+        mOfflineFrequencyDate = date;
+        if (mClassifier != null) {
+            mClassifier.setFrequencyDate(mOfflineFrequencyDate);
+        }
+    }
+
+    public void setOfflineFrequencyLocation(float latitude, float longitude) {
+        mOfflineFrequencyLatitude = latitude;
+        mOfflineFrequencyLongitude = longitude;
+        if (mClassifier != null) {
+            mClassifier.setFrequencyLocation(mOfflineFrequencyLatitude, mOfflineFrequencyLongitude);
+        }
+    }
+
     public void setConfidenceThreshold(float confidence) {
         mConfidenceThreshold = confidence;
+        if (mClassifier != null) {
+            mClassifier.setThreshold(mConfidenceThreshold);
+        }
     }
 
     public float getConfidenceThreshold() {
@@ -168,6 +192,9 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
         mTaxonomyFilename = filename;
     }
 
+    public void setOfflineFrequencyFilename(String filename) {
+        mOfflineFrequencyFilename = filename;
+    }
 
     public RNCameraView(ThemedReactContext themedReactContext) {
         super(themedReactContext, true);
@@ -349,9 +376,15 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
         if (mClassifier == null) {
             try {
-                mClassifier = new ImageClassifier(mModelFilename, mTaxonomyFilename);
+                mClassifier = new ImageClassifier(mModelFilename, mTaxonomyFilename, mOfflineFrequencyFilename);
                 mClassifier.setFilterByTaxonId(mFilterByTaxonId);
                 mClassifier.setNegativeFilter(mNegativeFilter);
+                mClassifier.setThreshold(mConfidenceThreshold);
+
+                if ((mOfflineFrequencyDate != null) && (mOfflineFrequencyLatitude != null) && (mOfflineFrequencyLongitude != null)) {
+                    mClassifier.setFrequencyDate(mOfflineFrequencyDate);
+                    mClassifier.setFrequencyLocation(mOfflineFrequencyLatitude, mOfflineFrequencyLongitude);
+                }
             } catch (IOException e) {
                 e.printStackTrace();
                 onClassifierError("Failed to initialize an image mClassifier: " + e.getMessage());

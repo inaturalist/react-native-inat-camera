@@ -890,10 +890,9 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      * {@link #mCameraOrientation}, and optionally, {@link #mAspectRatio}.</p>
      */
     private void collectCameraInfo() {
-        Timber.tag(TAG).d("collectCameraInfo 1 - current aspect ratio: " + mAspectRatio);
-
         StreamConfigurationMap map = mCameraCharacteristics.get(
                 CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+        Timber.tag(TAG).d("collectCameraInfo 1 - " + map);
         if (map == null) {
             throw new IllegalStateException("Failed to get configuration map: " + mCameraId);
         }
@@ -901,37 +900,31 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         for (android.util.Size size : map.getOutputSizes(mPreview.getOutputClass())) {
             int width = size.getWidth();
             int height = size.getHeight();
-            Timber.tag(TAG).d(String.format("collectCameraInfo 2 - %d x %d", width, height));
             if (width <= MAX_PREVIEW_WIDTH && height <= MAX_PREVIEW_HEIGHT) {
-                Timber.tag(TAG).d(String.format("collectCameraInfo 3 - adding"));
+                Timber.tag(TAG).d(String.format("collectCameraInfo 2 - adding preview size: %d x %d ==> %s", width, height, AspectRatio.of(width, height)));
                 mPreviewSizes.add(new Size(width, height));
+            } else {
+                Timber.tag(TAG).d(String.format("collectCameraInfo 2 - skipping preview size: %d x %d ==> %s", width, height, AspectRatio.of(width, height)));
             }
         }
         mPictureSizes.clear();
         collectPictureSizes(mPictureSizes, map);
         if (mPictureSize == null) {
-            Iterator<AspectRatio> iterator = mPreviewSizes.ratios().iterator();
+            Timber.tag(TAG).d(String.format("collectCameraInfo 3 - setting picture size, mAspectRatio = %s, %s", mAspectRatio, mPictureSizes.sizes(mAspectRatio)));
 
-            while (iterator.hasNext()) {
-                AspectRatio ratio = iterator.next();
-                Timber.tag(TAG).d(String.format("collectCameraInfo 3a - ratio: " + ratio));
-                SortedSet<Size> sizes = mPictureSizes.sizes(ratio);
-                Timber.tag(TAG).d(String.format("collectCameraInfo 3a - sizes for ratio: " + sizes));
-                if (sizes != null && sizes.size() > 0) {
-                    Timber.tag(TAG).d(String.format("collectCameraInfo 3a - last size for ratio: " + sizes.last()));
-                }
-            }
+            if (mPictureSizes.sizes(mAspectRatio) != null) {
+                mPictureSize = mPictureSizes.sizes(mAspectRatio).last();
+            } else {
+                // Revert to non-API 23 picture size collection
+                mPictureSizes.clear();
+                collectPictureSizesNonAPI23(mPictureSizes, map);
+                Timber.tag(TAG).d(String.format("collectCameraInfo 3b - setting picture size (non API23), mAspectRatio = %s, %s", mAspectRatio, mPictureSizes.sizes(mAspectRatio)));
 
-            iterator = mPreviewSizes.ratios().iterator();
-
-            while ((!mPreviewSizes.ratios().contains(mAspectRatio) || mPictureSizes.sizes(mAspectRatio) == null) && iterator.hasNext()) {
-                mAspectRatio = iterator.next();
-                Timber.tag(TAG).d(String.format("collectCameraInfo 3b - setting aspect ratio: " + mAspectRatio));
-            }
-            Timber.tag(TAG).d(String.format("collectCameraInfo 4 - picture sizes: " + mPictureSizes.ratios().size()));
-            if (!mPictureSizes.isEmpty()) {
-                if (mPictureSizes.ratios().contains(mAspectRatio) && mPictureSizes.sizes(mAspectRatio) != null) {
+                if (mPictureSizes.sizes(mAspectRatio) != null) {
                     mPictureSize = mPictureSizes.sizes(mAspectRatio).last();
+                } else {
+                    Timber.tag(TAG).d(String.format("collectCameraInfo 3c - setting picture size from preview, mAspectRatio = %s, %s", mAspectRatio, mPreviewSizes.sizes(mAspectRatio)));
+                    mPictureSize = mPreviewSizes.sizes(mAspectRatio).last();
                 }
             }
         }
@@ -949,13 +942,16 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
     }
 
     protected void collectPictureSizes(SizeMap sizes, StreamConfigurationMap map) {
-        Timber.tag(TAG).d(String.format(String.format("collectPictureSizes - image format = %s; map = %s", mImageFormat, map)));
+        collectPictureSizesNonAPI23(sizes, map);
+    }
+
+    protected void collectPictureSizesNonAPI23(SizeMap sizes, StreamConfigurationMap map) {
+        Timber.tag(TAG).d(String.format(String.format("collectPictureSizes (<23) - image format = %s; map = %s", mImageFormat, map)));
         for (android.util.Size size : map.getOutputSizes(mImageFormat)) {
-            Timber.tag(TAG).d(String.format(String.format("collectPictureSizes - adding - %d x %d", size.getWidth(), size.getHeight())));
+            Timber.tag(TAG).d(String.format(String.format("collectPictureSizes (<23) - adding - %d x %d - ratio %s", size.getWidth(), size.getHeight(), AspectRatio.of(size.getWidth(), size.getHeight()))));
             mPictureSizes.add(new Size(size.getWidth(), size.getHeight()));
         }
     }
-
     private void prepareStillImageReader() {
         if (mStillImageReader != null) {
             mStillImageReader.close();
