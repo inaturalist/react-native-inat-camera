@@ -21,7 +21,8 @@ type PictureOptions = {
 type getPredictionsForImageOptions = {
     uri: string,
     modelFilename: string,
-    taxonomyFilename: string
+    taxonomyFilename: string,
+    taxonMappingFilename: string,
 };
 
 
@@ -34,6 +35,7 @@ export class INatCamera extends React.Component<PropsType, StateType> {
         taxaDetectionInterval: PropTypes.string,
         modelPath: PropTypes.string,
         taxonomyPath: PropTypes.string,
+        taxonMappingPath: PropsTypes.string,
         confidenceThreshold: PropTypes.string,
         filterByTaxonId: PropTypes.string,
         negativeFilter: PropTypes.bool,
@@ -109,6 +111,7 @@ export class INatCamera extends React.Component<PropsType, StateType> {
                     onDeviceNotSupported={this._onDeviceNotSupported}
                     modelPath={this.props.modelPath}
                     taxonomyPath={this.props.taxonomyPath}
+                    taxonMappingPath={this.props.taxonMappingPath}
                     taxaDetectionInterval={this.props.taxaDetectionInterval}
                     confidenceThreshold={this.props.confidenceThreshold}
                     onLog={this._onLog}

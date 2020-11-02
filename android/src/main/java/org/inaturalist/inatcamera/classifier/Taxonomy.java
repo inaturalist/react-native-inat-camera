@@ -26,6 +26,7 @@ public class Taxonomy {
     List<Node> mLeaves; // this is a convenience array for testing
     Node mLifeNode;
     Float mThreadshold; // Minimum threshold, below which scores will get reset to zero
+    Map<String, String> mTaxonMapping;
 
     private Integer mFilterByTaxonId = null; // If null -> no filter by taxon ID defined
     private boolean mNegativeFilter = false;
@@ -52,7 +53,37 @@ public class Taxonomy {
         mThreadshold = threshold;
     }
 
-    Taxonomy(InputStream is) {
+    Taxonomy(InputStream taxonomyStream) {
+        this(taxonomyStream, null);
+    }
+
+    Taxonomy(InputStream taxonomyStream, InputStream mappingStream) {
+        readTaxonomyFile(taxonomyStream);
+        readMappingFile(mappingStream);
+    }
+
+    private void readMappingFile(InputStream is) {
+        // Read mapping CSV file - matches between vision results taxon ID => new taxon ID (if swapping) or null (if removed).
+        mTaxonMapping = new HashMap<>();
+
+        if (is == null) return;
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+        try {
+            reader.readLine(); // Skip the first line (header line)
+
+            for (String line; (line = reader.readLine()) != null; ) {
+                String[] parts = line.trim().split(",");
+                if (parts.length < 2) continue;
+
+                mTaxonMapping.put(parts[0], parts[1].length() > 0 ? parts[1] : null);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void readTaxonomyFile(InputStream is) {
         // Read the taxonomy CSV file into a list of nodes
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
@@ -112,17 +143,43 @@ public class Taxonomy {
         // Get raw predictions
         float[] results = ((float[][]) outputs.get(0))[0];
 
-        Map<String, Float> scores = aggregateScores(results);
+        // Calculate aggregates scores for all taxa
+        Map<String, Float> visionScores = aggregateScores(results);
+        // Find the common ancestor (highest scoring node that is still above the threshold)
+        Node commonAncestor = findCommonAncestor(visionScores, mLifeNode);
+        // Reset all other scores (that are not under the common ancestor branch
+        resetNonCommonAncestor(visionScores, commonAncestor);
+
+        Map<String, Float> frequencyScores = new HashMap<>();
+        Map<String, Float> combinedScores = new HashMap<>();
+
         if (frequencyResults != null) {
-            calculateFrequencyScores(scores, frequencyResults);
+            calculateFrequencyScores(visionScores, frequencyScores, frequencyResults, combinedScores);
+        } else {
+            // No frequency results - just use vision scores as-is
+            combinedScores = visionScores;
         }
-        List<Prediction> bestBranch = buildBestBranchFromScores(scores);
+
+        List<Prediction> bestBranch = buildBestBranchFromScores(combinedScores);
+
+        // Add original vision and frequency data for each prediction
+        for (Prediction prediction : bestBranch) {
+            Node node = prediction.node;
+            String taxonId = node.key;
+
+            if (frequencyScores.containsKey(taxonId)) {
+                prediction.frequencyResult = frequencyScores.get(taxonId);
+            }
+            if (visionScores.containsKey(taxonId)) {
+                prediction.visionResult = visionScores.get(taxonId);
+            }
+        }
         
         return bestBranch;
     }
 
     /** Adds frequency scores - based on: https://github.com/inaturalist/iNaturalistAPI/blob/main/lib/controllers/v1/computervision_controller.js#L242 */
-    private void calculateFrequencyScores(Map<String, Float> scores, List<JsonObject> frequencyResults) {
+    private void calculateFrequencyScores(Map<String, Float> visionScores, Map<String, Float> frequencyScores, List<JsonObject> frequencyResults, Map<String, Float> combinedScores) {
         int sumScore = 0;
         Map<String, Float> frequencyMap = new HashMap<>();
 
@@ -131,29 +188,93 @@ public class Taxonomy {
             frequencyMap.put(frequencyResult.get("i").getAsString(), frequencyResult.get("c").getAsFloat());
         }
 
-        for (String taxonId : scores.keySet()) {
-            float score = scores.get(taxonId);
+        for (String taxonId : visionScores.keySet()) {
+            float score = visionScores.get(taxonId);
 
             if (frequencyMap.containsKey(taxonId)) {
                 // Vision results with relevant frequency scores get a boost
-                float frequencyScore = (frequencyMap.get(taxonId) / sumScore) * 20;
+                float frequencyScore = (frequencyMap.get(taxonId) / sumScore);
+                frequencyScores.put(taxonId, frequencyScore); // Save original frequency score
 
                 if (score > 0) {
                     // Timber.tag(TAG).d(String.format("%s: Freq score: %f; prev: %f; count: %f / %d", taxonId, frequencyScore, score, frequencyMap.get(taxonId), sumScore));
-                    score += frequencyScore;
-                    scores.put(taxonId, score > 1f ? 1f : score);
+                    score += frequencyScore * 20;
+                    combinedScores.put(taxonId, score > 1f ? 1f : score);
+                } else {
+                    combinedScores.put(taxonId, score);
                 }
             } else {
-                // Everything else uses the raw vision score - do nothing
+                // Everything else uses the raw vision score
+                combinedScores.put(taxonId, score);
             }
         }
 
         // Add any results not from vision
         for (String taxonId : frequencyMap.keySet()) {
-            if (!scores.containsKey(taxonId)) {
-                scores.put(taxonId, (frequencyMap.get(taxonId) / sumScore) * 0.75f);
+            if (!visionScores.containsKey(taxonId)) {
+                combinedScores.put(taxonId, (frequencyMap.get(taxonId) / sumScore) * 0.75f);
             }
         }
+    }
+
+    /** Reset all other scores (that are not under the common ancestor branch */
+    private void resetNonCommonAncestor(Map<String, Float> scores, Node currentNode) {
+        Node parent = currentNode.parent;
+
+        if (parent == null) return;
+
+        if (parent.children != null) {
+            // Reset the siblings of the current node, and the children of each sibling
+            for (Node child : parent.children) {
+                // Don't reset current node
+                if (child == currentNode) continue;
+
+                // Reset this sibling and all children (direct and indirect) of the current sibling
+                resetAllChildren(scores, child);
+            }
+        }
+
+        if (parent == mLifeNode) {
+            // Reach top of the life tree - we're done
+            return;
+        }
+
+        // Go on up
+        resetNonCommonAncestor(scores, parent);
+    }
+
+    /** Resets the score for the current node and all of its direct/indirect children */
+    private void resetAllChildren(Map<String, Float> scores, Node currentNode) {
+        scores.put(currentNode.key, 0f);
+
+        for (Node child : currentNode.children) {
+            scores.put(child.key, 0f);
+            resetAllChildren(scores, child);
+        }
+    }
+
+    /** Find the common ancestor - at each branch level, choose the highest-scoring branch -
+     * continue down the tree every time, until reaching a branch that is below the threshold */
+    private Node findCommonAncestor(Map<String, Float> scores, Node currentNode) {
+        Node maxChild = null;
+        Float maxScore = 0f;
+
+        // Find direct child that has the highest score (and still above the threshold)
+        for (Node child : currentNode.children) {
+            Float score = scores.get(child.key);
+            if ((score >= mThreadshold) && (score > maxScore)) {
+                maxScore = score;
+                maxChild = child;
+            }
+        }
+
+        if (maxChild == null) {
+            // None of the children is above the thresholds - return current node
+            return currentNode;
+        }
+
+        // Find the lowest class child that is above the threshold
+        return findCommonAncestor(scores, maxChild);
     }
 
 
@@ -176,7 +297,8 @@ public class Taxonomy {
 
             float thisScore = 0.0f;
             for (Node child : currentNode.children) {
-                thisScore += allScores.get(child.key);
+                Float score = allScores.get(child.key);
+                if (score != null) thisScore += score;
             }
 
             allScores.put(currentNode.key, thisScore);
@@ -184,8 +306,18 @@ public class Taxonomy {
         } else {
             // base case, no children
             boolean resetScore = false;
+            float score = results[Integer.valueOf(currentNode.leafId)];
+            String newTaxonId = mTaxonMapping.containsKey(currentNode.key) ?
+                    // Taxon swap
+                    mTaxonMapping.get(currentNode.key) :
+                    // No swap made
+                    currentNode.key;
 
-            if (mFilterByTaxonId != null) {
+            if (newTaxonId == null) {
+                // Taxon was dropped (inactive) - reset score
+                resetScore = true;
+
+            } else if (mFilterByTaxonId != null) {
                 // Filter
 
                 // Reset current prediction score if:
@@ -195,13 +327,7 @@ public class Taxonomy {
                 resetScore = (containsAncestor && mNegativeFilter) || (!containsAncestor && !mNegativeFilter);
             }
 
-            float score = results[Integer.valueOf(currentNode.leafId)];
-
-            if ((mThreadshold != null) && (!resetScore)) {
-                resetScore = score < mThreadshold;
-            }
-
-            allScores.put(currentNode.key, resetScore ? 0.0f : score);
+            allScores.put(newTaxonId != null ? newTaxonId : currentNode.key, resetScore ? 0.0f : score);
         }
 
         return allScores;

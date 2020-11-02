@@ -35,6 +35,7 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
 
     public static final String OPTION_URI = "uri";
     public static final String OPTION_TAXONOMY_FILENAME = "taxonomyFilename";
+    public static final String OPTION_TAXON_MAPPING_FILENAME = "taxonMappingFilename";
     public static final String OPTION_MODEL_FILENAME = "modelFilename";
     public static final String OPTION_OFFLINE_FREQUENCY_FILENAME = "offlineFrequencyFilename";
     public static final String OPTION_FREQUENCY_DATE = "offlineFrequencyDate";
@@ -123,6 +124,7 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
         String uri = options.getString(OPTION_URI);
         String modelFilename = options.getString(OPTION_MODEL_FILENAME);
         String taxonomyFilename = options.getString(OPTION_TAXONOMY_FILENAME);
+        String taxonMappingFilename = options.getString(OPTION_TAXON_MAPPING_FILENAME);
         String offlineFrequencyFilename = options.getString(OPTION_OFFLINE_FREQUENCY_FILENAME);
         SimpleDateFormat format = new SimpleDateFormat("yyyy/MM/dd");
         Date offlineFrequencyDate = null;
@@ -146,7 +148,7 @@ public class INatCameraModule extends ReactContextBaseJavaModule {
         ImageClassifier classifier = null;
 
         try {
-            classifier = new ImageClassifier(modelFilename, taxonomyFilename, offlineFrequencyFilename);
+            classifier = new ImageClassifier(modelFilename, taxonomyFilename, offlineFrequencyFilename, taxonMappingFilename);
             if ((offlineFrequencyDate != null) && (offlineFrequencyLatitude != null) && (offlineFrequencyLongitude != null)) {
                 classifier.setFrequencyDate(offlineFrequencyDate);
                 classifier.setFrequencyLocation(offlineFrequencyLatitude, offlineFrequencyLongitude);

@@ -109,6 +109,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
     private String mModelFilename;
     private String mTaxonomyFilename;
+    private String mTaxonMappingFilename;
     private String mOfflineFrequencyFilename;
     private boolean mDeviceSupported;
 
@@ -186,6 +187,10 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
     public void setModelFilename(String filename) {
         mModelFilename = filename;
+    }
+
+    public void setTaxonMappingFilename(String filename) {
+        mTaxonMappingFilename = filename;
     }
 
     public void setTaxonomyFilename(String filename) {
@@ -376,7 +381,7 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
         if (mClassifier == null) {
             try {
-                mClassifier = new ImageClassifier(mModelFilename, mTaxonomyFilename, mOfflineFrequencyFilename);
+                mClassifier = new ImageClassifier(mModelFilename, mTaxonomyFilename, mOfflineFrequencyFilename, mTaxonMappingFilename);
                 mClassifier.setFilterByTaxonId(mFilterByTaxonId);
                 mClassifier.setNegativeFilter(mNegativeFilter);
                 mClassifier.setThreshold(mConfidenceThreshold);
@@ -691,6 +696,8 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
             result.putString("name", prediction.node.name);
             result.putDouble("score", prediction.probability);
             result.putDouble("rank", prediction.node.rank);
+            if (prediction.frequencyResult != null) result.putDouble("frequency_score", prediction.frequencyResult);
+            if (prediction.visionResult != null) result.putDouble("vision_score", prediction.visionResult);
         } catch (NumberFormatException exc) {
             // Invalid node key or class ID
             exc.printStackTrace();

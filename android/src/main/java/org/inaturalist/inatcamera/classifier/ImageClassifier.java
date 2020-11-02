@@ -41,6 +41,7 @@ public class ImageClassifier {
     private final Taxonomy mTaxonomy;
     private final String mModelFilename;
     private final String mTaxonomyFilename;
+    private final String mTaxonMappingFilename;
     private final String mOfflineFrequencyFilename;
     private int mModelSize;
     private OfflineFrequency mOfflineFrequency;
@@ -87,9 +88,10 @@ public class ImageClassifier {
     }
 
     /** Initializes an {@code ImageClassifier}. */
-    public ImageClassifier(String modelPath, String taxonomyPath, String offlineFrequencyPath) throws IOException {
+    public ImageClassifier(String modelPath, String taxonomyPath, String offlineFrequencyPath, String taxonMappingFilename) throws IOException {
         mModelFilename = modelPath;
         mTaxonomyFilename = taxonomyPath;
+        mTaxonMappingFilename = taxonMappingFilename;
         mOfflineFrequencyFilename = offlineFrequencyPath;
         if (mOfflineFrequencyFilename != null) mOfflineFrequency = new OfflineFrequency(mOfflineFrequencyFilename);
         mTFlite = new Interpreter(loadModelFile());
@@ -99,7 +101,7 @@ public class ImageClassifier {
         imgData.order(ByteOrder.nativeOrder());
         Timber.tag(TAG).d("Created a Tensorflow Lite Image Classifier.");
 
-        mTaxonomy = new Taxonomy(new FileInputStream(mTaxonomyFilename));
+        mTaxonomy = new Taxonomy(new FileInputStream(mTaxonomyFilename), mTaxonMappingFilename != null ? new FileInputStream(mTaxonMappingFilename) : null);
         mModelSize = mTaxonomy.getModelSize();
     }
 

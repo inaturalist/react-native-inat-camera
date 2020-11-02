@@ -77,6 +77,11 @@ public class INatCameraViewManager extends SimpleViewManager<RNCameraView> {
         view.setTaxonomyFilename(path);
     }
 
+    @ReactProp(name = "taxonMappingPath")
+    public void setTaxonMappingPath(RNCameraView view, String path) {
+        view.setTaxonMappingFilename(path);
+    }
+
     @ReactProp(name = "offlineFrequencyPath")
     public void setOfflineFrequencyPath(RNCameraView view, String path) {
         view.setOfflineFrequencyFilename(path);
