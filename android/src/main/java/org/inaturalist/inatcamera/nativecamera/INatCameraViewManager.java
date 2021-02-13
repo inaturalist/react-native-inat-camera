@@ -7,6 +7,7 @@ import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.bridge.ReactMethod;
 import android.widget.Toast;
 import org.inaturalist.inatcamera.nativecamera.RNCameraView;
+import org.inaturalist.inatcamera.ui.Constants;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
 import timber.log.*;
@@ -85,6 +86,15 @@ public class INatCameraViewManager extends SimpleViewManager<RNCameraView> {
     @ReactProp(name = "offlineFrequencyPath")
     public void setOfflineFrequencyPath(RNCameraView view, String path) {
         view.setOfflineFrequencyFilename(path);
+    }
+
+    @ReactProp(name = "type")
+    public void setType(RNCameraView view, String type) {
+        if (type.equals("front")) {
+            view.setFacing(Constants.FACING_FRONT);
+        } else if (type.equals("back")) {
+            view.setFacing(Constants.FACING_BACK);
+        }
     }
 
     @Override

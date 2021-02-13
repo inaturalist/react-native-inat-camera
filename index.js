@@ -39,6 +39,7 @@ export class INatCamera extends React.Component<PropsType, StateType> {
         confidenceThreshold: PropTypes.string,
         filterByTaxonId: PropTypes.string,
         negativeFilter: PropTypes.bool,
+        type: PropTypes.string,
         ...ViewPropTypes,
     };
 
@@ -117,6 +118,7 @@ export class INatCamera extends React.Component<PropsType, StateType> {
                     onLog={this._onLog}
                     filterByTaxonId={this.props.filterByTaxonId}
                     negativeFilter={this.props.negativeFilter}
+                    type={this.props.type}
                 />
             </View>
         );
