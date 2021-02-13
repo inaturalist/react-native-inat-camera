@@ -7,7 +7,7 @@ import com.facebook.react.uimanager.annotations.ReactProp;
 import com.facebook.react.bridge.ReactMethod;
 import android.widget.Toast;
 import org.inaturalist.inatcamera.nativecamera.RNCameraView;
-
+import org.inaturalist.inatcamera.ui.Constants;
 import java.util.Map;
 
 public class INatCameraViewManager extends SimpleViewManager<RNCameraView> {
@@ -75,5 +75,13 @@ public class INatCameraViewManager extends SimpleViewManager<RNCameraView> {
         );
     }
 
+    @ReactProp(name = "type")
+    public void setType(RNCameraView view, String type) {
+        if (type.equals("front")) {
+            view.setFacing(Constants.FACING_FRONT);
+        } else if (type.equals("back")) {
+            view.setFacing(Constants.FACING_BACK);
+        }
+    }
 }
 
