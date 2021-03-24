@@ -145,8 +145,14 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             updateWhiteBalance();
             updateZoom();
             try {
-                mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(),
-                        mCaptureCallback, null);
+                if (mPreviewRequestBuilder == null) {
+                    Timber.tag(TAG).e("onConfigured - mPreviewRequestBuilder is null (2)");
+                } else if (mCaptureSession == null) {
+                    Timber.tag(TAG).e("onConfigured - mCaptureSession is null");
+                } else {
+                    mCaptureSession.setRepeatingRequest(mPreviewRequestBuilder.build(),
+                            mCaptureCallback, null);
+                }
             } catch (CameraAccessException e) {
                 Timber.tag(TAG).e("Failed to start camera preview because it couldn't access camera", e);
             } catch (IllegalStateException e) {
