@@ -256,7 +256,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                 Timber.tag(TAG).d("doInBackground 17");
                 String filePath = writeBitmap(response);
                 Timber.tag(TAG).d("doInBackground 18");
-                if (fileExifData != null) {
+                if ((fileExifData != null) && (filePath != null)) {
                     Timber.tag(TAG).d("doInBackground 19");
                     ExifInterface fileExifInterface = new ExifInterface(filePath);
                     Timber.tag(TAG).d("doInBackground 20");
@@ -282,10 +282,15 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                     Timber.tag(TAG).d("doInBackground 23");
                     fileExifInterface.saveAttributes();
                     Timber.tag(TAG).d("doInBackground 24");
+                } else {
+                    Timber.tag(TAG).e("filePath is null");
                 }
-                File imageFile = new File(filePath);
-                String fileUri = Uri.fromFile(imageFile).toString();
-                response.putString("uri", fileUri);
+
+                if (filePath != null) {
+                    File imageFile = new File(filePath);
+                    String fileUri = Uri.fromFile(imageFile).toString();
+                    response.putString("uri", fileUri);
+                }
             }
 
             if (inputStream != null) {
