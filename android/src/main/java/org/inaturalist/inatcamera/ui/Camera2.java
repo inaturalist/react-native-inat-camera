@@ -211,8 +211,14 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         public void onImageAvailable(ImageReader reader) {
             Timber.tag(TAG).d("onImageAvailable");
             try (Image image = reader.acquireNextImage()) {
-                Image.Plane[] planes = image.getPlanes();
-                if (planes.length > 0) {
+                Image.Plane[] planes = null;
+                try {
+                    planes = image.getPlanes();
+                } catch (RuntimeException exc) {
+                    Timber.tag(TAG).e("Exception: " + exc);
+                }
+
+                if ((planes != null) && (planes.length > 0)) {
                     ByteBuffer buffer = planes[0].getBuffer();
                     byte[] data = new byte[buffer.remaining()];
                     buffer.get(data);
