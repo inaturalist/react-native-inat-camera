@@ -278,6 +278,8 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
                         fileExifInterface.setAttribute(ExifInterface.TAG_GPS_LONGITUDE, GPSEncoder.convert(longitude));
                         fileExifInterface.setAttribute(ExifInterface.TAG_GPS_LONGITUDE_REF, GPSEncoder.longitudeRef(longitude));
                     }
+                    Timber.tag(TAG).d("doInBackground 22.5");
+                    fileExifInterface.setAttribute(ExifInterface.TAG_SOFTWARE, "React Native iNat Camera 1.0.0");
 
                     Timber.tag(TAG).d("doInBackground 23");
                     fileExifInterface.saveAttributes();
