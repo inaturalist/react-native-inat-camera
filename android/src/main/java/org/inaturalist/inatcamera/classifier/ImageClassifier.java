@@ -105,13 +105,14 @@ public class ImageClassifier {
         }
 
         Object[] input = { imgData };
+        List<Prediction> predictions = null;
         try {
             mTFlite.runForMultipleInputsOutputs(input, expectedOutputs);
+            predictions = mTaxonomy.predict(expectedOutputs);
         } catch (Exception exc) {
             exc.printStackTrace();
             return new ArrayList<Prediction>();
         }
-        List<Prediction> predictions = mTaxonomy.predict(expectedOutputs);
         long endTime = SystemClock.uptimeMillis();
 
         return predictions;
