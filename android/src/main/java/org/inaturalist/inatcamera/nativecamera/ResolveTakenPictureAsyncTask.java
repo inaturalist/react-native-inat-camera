@@ -149,8 +149,14 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
         Timber.tag(TAG).d("doInBackground 2 - " + mBitmap);
         // we need the stream only for photos from a device
         if (mBitmap == null) {
-            mBitmap = BitmapFactory.decodeByteArray(mImageData, 0, mImageData.length);
-            inputStream = new ByteArrayInputStream(mImageData);
+            try {
+                mBitmap = BitmapFactory.decodeByteArray(mImageData, 0, mImageData.length);
+                inputStream = new ByteArrayInputStream(mImageData);
+            } catch (OutOfMemoryError e) {
+                Timber.tag(TAG).e("Out of memory exception");
+                Timber.tag(TAG).e(e);
+                mPromise.reject(ERROR_TAG, "Out of memory exception.", e);
+            }
         }
         Timber.tag(TAG).d("doInBackground 3");
 
