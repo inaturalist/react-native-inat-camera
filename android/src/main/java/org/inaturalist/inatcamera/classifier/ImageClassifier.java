@@ -112,6 +112,9 @@ public class ImageClassifier {
         } catch (Exception exc) {
             exc.printStackTrace();
             return new ArrayList<Prediction>();
+        } catch (OutOfMemoryError exc) {
+            exc.printStackTrace();
+            return new ArrayList<Prediction>();
         }
         long endTime = SystemClock.uptimeMillis();
 
