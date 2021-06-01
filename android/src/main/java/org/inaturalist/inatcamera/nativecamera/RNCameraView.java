@@ -468,7 +468,14 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
             return;
         }
         TextureView textureView = getTextureView();
-        Bitmap bitmap = textureView.getBitmap(ImageClassifier.DIM_IMG_SIZE_X, ImageClassifier.DIM_IMG_SIZE_Y);
+        Bitmap bitmap = null;
+        try {
+            bitmap = textureView.getBitmap(ImageClassifier.DIM_IMG_SIZE_X, ImageClassifier.DIM_IMG_SIZE_Y);
+        } catch (Exception exc) {
+            Timber.tag(TAG).e("TextureView.getBitmap exception: " + exc);
+            Timber.tag(TAG).e(exc);
+            return;
+        }
 
         if (bitmap == null) {
             Timber.tag(TAG).e("Null input bitmap");
