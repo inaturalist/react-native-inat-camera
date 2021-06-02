@@ -1019,7 +1019,7 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
      */
     void startCaptureSession() {
         Timber.tag(TAG).d("startCaptureSession 1 - " + mCamera + ":" + mPreview.isReady() + ":" + mStillImageReader + ":" + mScanImageReader);
-        if (!isCameraOpened() || !mPreview.isReady() || mStillImageReader == null || mScanImageReader == null) {
+        if (!isCameraOpened() || !mPreview.isReady() || mStillImageReader == null || mScanImageReader == null || mCamera == null) {
             return;
         }
         Timber.tag(TAG).d("startCaptureSession 2 - " + mIsScanning);
@@ -1033,6 +1033,10 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
             if (mIsScanning) {
                 mPreviewRequestBuilder.addTarget(mScanImageReader.getSurface());
             }
+            if (mStillImageReader == null || mScanImageReader == null || mCamera == null) {
+                return;
+            }
+
             mCamera.createCaptureSession(Arrays.asList(surface, mStillImageReader.getSurface(),
                     mScanImageReader.getSurface()), mSessionCallback, null);
         } catch (IllegalStateException e) {
