@@ -692,6 +692,10 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
     }
 
     public void fillResults(WritableMap response, List<Prediction> predictions) {
+        if (predictions == null || mLastPredictions == null || response == null) {
+            return;
+        }
+
         WritableArray results = Arguments.createArray();
 
         boolean hasGoodPrediction = false; // Whether or not the current result set has a species-level prediction with good enough confidence
