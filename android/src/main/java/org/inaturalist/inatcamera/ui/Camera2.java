@@ -191,6 +191,8 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
                 mCaptureSession.capture(mPreviewRequestBuilder.build(), this, null);
                 mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER,
                         CaptureRequest.CONTROL_AE_PRECAPTURE_TRIGGER_IDLE);
+            } catch (IllegalStateException e) {
+                Timber.tag(TAG).e("IllegalStateException - Failed to run precapture sequence.", e);
             } catch (CameraAccessException e) {
                 Timber.tag(TAG).e("Failed to run precapture sequence.", e);
             }
