@@ -129,50 +129,6 @@
         return;
     }
     self.visionModel = visionModel;
-    
-    
-    VNCoreMLRequest *objectRec = [[VNCoreMLRequest alloc] initWithModel:visionModel];
-    
-    
-    VNRequestCompletionHandler handler = ^(VNRequest * _Nonnull request, NSError * _Nullable error) {
-        VNCoreMLFeatureValueObservation *firstResult = request.results.firstObject;
-        MLFeatureValue *firstFV = firstResult.featureValue;
-        MLMultiArray *mm = firstFV.multiArrayValue;
-        
-        // evaluate the best branch
-        NSArray *bestBranch = [self.taxonomy inflateTopBranchFromClassification:mm];
-        // add this to the end of the recent top branches array
-        [self.recentTopBranches addObject:bestBranch];
-        // trim stuff from the beginning
-        while (self.recentTopBranches.count > NUM_RECENT_PREDICTIONS) {
-            [self.recentTopBranches removeObjectAtIndex:0];
-        }
-        
-        // evaluate the top prediction
-        NATPrediction *topPrediction = [self.taxonomy inflateTopPredictionFromClassification:mm
-                                                                         confidenceThreshold:self.threshold];
-        // add this top prediction to the recent top predictions array
-        [self.recentTopPredictions addObject:topPrediction];
-        // trim stuff from the beginning
-        while (self.recentTopPredictions.count > NUM_RECENT_PREDICTIONS) {
-            [self.recentTopPredictions removeObjectAtIndex:0];
-        }
-        
-        // find the recent prediction with the most specific rank
-        NATPrediction *bestRecentPrediction = [self.recentTopPredictions lastObject];
-        for (NATPrediction *candidateRecentPrediction in [self.recentTopPredictions reverseObjectEnumerator]) {
-            if (candidateRecentPrediction.rank < bestRecentPrediction.rank) {
-                bestRecentPrediction = candidateRecentPrediction;
-            }
-        }
-        
-        [self.delegate topClassificationResult:[bestRecentPrediction asDict]];
-    };
-    
-    VNCoreMLRequest *objectRecognition = [[VNCoreMLRequest alloc] initWithModel:visionModel
-                                                              completionHandler:handler];
-    objectRecognition.imageCropAndScaleOption = VNImageCropAndScaleOptionCenterCrop;
-    self.requests = @[objectRecognition];
 }
 
 - (void)classifyFrame:(CVImageBufferRef)pixelBuf orientation:(CGImagePropertyOrientation)exifOrientation {
@@ -180,13 +136,81 @@
                                                                               orientation:exifOrientation
                                                                                   options:@{}];
     NSError *requestError = nil;
-    [handler performRequests:self.requests
+    NSMutableArray *requests = [NSMutableArray array];
+    
+    VNCoreMLRequest *inatRequest = [[VNCoreMLRequest alloc] initWithModel:self.visionModel];
+    inatRequest.imageCropAndScaleOption = VNImageCropAndScaleOptionCenterCrop;
+    [requests addObject:inatRequest];
+    
+    if (@available(iOS 13.0, *)) {
+        VNDetectHumanRectanglesRequest *humanRequest = [[VNDetectHumanRectanglesRequest alloc] init];
+        [requests addObject:humanRequest];
+    }
+    
+    [handler performRequests:requests
                        error:&requestError];
+    
+    
     if (requestError) {
         NSString *errString = [NSString stringWithFormat:@"got a request error: %@",
                                requestError.localizedDescription];
         [self.delegate classifierError:errString];
+        return;
     }
+    
+    // process the inat results
+    VNCoreMLFeatureValueObservation *firstResult = inatRequest.results.firstObject;
+    MLFeatureValue *firstFV = firstResult.featureValue;
+    MLMultiArray *mm = firstFV.multiArrayValue;
+    
+    // find the best branch
+    NSArray *bestBranch = [self.taxonomy inflateTopBranchFromClassification:mm];
+    // add this to the end of the recent top branches array
+    [self.recentTopBranches addObject:bestBranch];
+    // trim stuff from the beginning
+    while (self.recentTopBranches.count > NUM_RECENT_PREDICTIONS) {
+        [self.recentTopBranches removeObjectAtIndex:0];
+    }
+    
+    // evaluate the top prediction
+    NATPrediction *topPrediction = [self.taxonomy inflateTopPredictionFromClassification:mm
+                                                                     confidenceThreshold:self.threshold];
+    // add this top prediction to the recent top predictions array
+    [self.recentTopPredictions addObject:topPrediction];
+    // trim stuff from the beginning
+    while (self.recentTopPredictions.count > NUM_RECENT_PREDICTIONS) {
+        [self.recentTopPredictions removeObjectAtIndex:0];
+    }
+    
+    // find the recent prediction with the most specific rank
+    NATPrediction *bestRecentPrediction = [self.recentTopPredictions lastObject];
+    for (NATPrediction *candidateRecentPrediction in [self.recentTopPredictions reverseObjectEnumerator]) {
+        if (candidateRecentPrediction.rank < bestRecentPrediction.rank) {
+            bestRecentPrediction = candidateRecentPrediction;
+        }
+    }
+    
+    // evaluate the human request
+    float cameraTopHumanScore = 0.0;
+    BOOL cameraHumanScoreSupported = NO;
+    if (@available(iOS 13.0, *)) {
+        cameraHumanScoreSupported = YES;
+        if (requests.count > 1) {
+            VNDetectHumanRectanglesRequest *humanRequest = requests[1];
+            for (VNObservation *result in humanRequest.results) {
+                if (cameraTopHumanScore < result.confidence) {
+                    cameraTopHumanScore = result.confidence;
+                }
+            }
+        }
+    }
+    
+    NSMutableDictionary *results = [NSMutableDictionary dictionary];
+    results[@"iNatModelBestBranch"] = [bestRecentPrediction asDict];
+    results[@"cameraTopHumanScore"] = @(cameraTopHumanScore);
+    results[@"cameraHumanScoreSupported"] = @(cameraHumanScoreSupported);
+    
+    [self.delegate topClassificationResult:results];
 }
 
 -(void)classifyImageData:(NSData *)data orientation:(CGImagePropertyOrientation)orientation handler:(BranchClassificationHandler)predictionCompletion {
