@@ -12,6 +12,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.BufferOverflowException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Collection;
@@ -141,19 +142,25 @@ public class ImageClassifier {
         }
         imgData.rewind();
         bitmap.getPixels(intValues, 0, bitmap.getWidth(), 0, 0, bitmap.getWidth(), bitmap.getHeight());
-        // Convert the image to floating point.
-        int pixel = 0;
-        long startTime = SystemClock.uptimeMillis();
-        for (int i = 0; i < DIM_IMG_SIZE_X; ++i) {
-            for (int j = 0; j < DIM_IMG_SIZE_Y; ++j) {
-                final int val = intValues[pixel++];
-                imgData.putFloat((((val >> 16) & 0xFF)-IMAGE_MEAN)/IMAGE_STD);
-                imgData.putFloat((((val >> 8) & 0xFF)-IMAGE_MEAN)/IMAGE_STD);
-                imgData.putFloat((((val) & 0xFF)-IMAGE_MEAN)/IMAGE_STD);
+
+        try {
+            // Convert the image to floating point.
+            int pixel = 0;
+            long startTime = SystemClock.uptimeMillis();
+            for (int i = 0; i < DIM_IMG_SIZE_X; ++i) {
+                for (int j = 0; j < DIM_IMG_SIZE_Y; ++j) {
+                    final int val = intValues[pixel++];
+                    imgData.putFloat((((val >> 16) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
+                    imgData.putFloat((((val >> 8) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
+                    imgData.putFloat((((val) & 0xFF) - IMAGE_MEAN) / IMAGE_STD);
+                }
             }
+            long endTime = SystemClock.uptimeMillis();
+            Timber.tag(TAG).d("Timecost to put values into ByteBuffer: " + Long.toString(endTime - startTime));
+        } catch (BufferOverflowException exc) {
+            Timber.tag(TAG).e("Exception while converting to byte buffer: " + exc);
+            Timber.tag(TAG).e(exc);
         }
-        long endTime = SystemClock.uptimeMillis();
-        Timber.tag(TAG).d("Timecost to put values into ByteBuffer: " + Long.toString(endTime - startTime));
     }
 
 }
