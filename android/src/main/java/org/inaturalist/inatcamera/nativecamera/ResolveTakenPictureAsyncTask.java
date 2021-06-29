@@ -90,12 +90,18 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
             response = null; // do not resolve
             mPromise.reject(ERROR_TAG, "Documents directory of the app could not be found.", e);
             e.printStackTrace();
+            Timber.tag(TAG).e(e);
             return null;
         } catch (IOException e) {
             response = null; // do not resolve
             mPromise.reject(ERROR_TAG, "An unknown I/O exception has occurred.", e);
             e.printStackTrace();
+            Timber.tag(TAG).e(e);
             return null;
+        } catch (OutOfMemoryError e) {
+            Timber.tag(TAG).e("Out of memory exception");
+            Timber.tag(TAG).e(e);
+            mPromise.reject(ERROR_TAG, "Out of memory exception.", e);
         }
     }
 
