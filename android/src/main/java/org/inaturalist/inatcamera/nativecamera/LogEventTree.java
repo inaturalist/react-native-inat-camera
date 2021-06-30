@@ -28,23 +28,28 @@ public class LogEventTree extends Timber.DebugTree {
     protected void log(int priority, String tag, String message, Throwable t) {
         StringBuilder builder = new StringBuilder();
 
-        Date now = new Date();
-        SimpleDateFormat dateString = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        try {
+            Date now = new Date();
+            SimpleDateFormat dateString = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
-        String formattedMessage = builder
-                .append(dateString.format(now))
-                .append(": ")
-                .append(tag)
-                .append(": ")
-                .append(message)
-                .toString();
+            String formattedMessage = builder
+                    .append(dateString.format(now))
+                    .append(": ")
+                    .append(tag)
+                    .append(": ")
+                    .append(message)
+                    .toString();
 
-        WritableMap event = Arguments.createMap();
-        event.putString("log", formattedMessage);
-        mContext.getJSModule(RCTEventEmitter.class).receiveEvent(
-                mView.getId(),
-                EVENT_NAME_ON_LOG,
-                event);
+            WritableMap event = Arguments.createMap();
+            event.putString("log", formattedMessage);
+            mContext.getJSModule(RCTEventEmitter.class).receiveEvent(
+                    mView.getId(),
+                    EVENT_NAME_ON_LOG,
+                    event);
+        } catch (OutOfMemoryError e) {
+            // Can't print to log in this case since the OOM exception is within the log tree itself
+            e.printStackTrace();
+        }
     }
 
     @Override

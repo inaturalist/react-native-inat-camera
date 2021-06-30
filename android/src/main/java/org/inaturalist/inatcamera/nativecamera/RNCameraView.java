@@ -482,8 +482,17 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
             return;
         }
 
-        List<Prediction> predictions = mClassifier.classifyFrame(bitmap);
-        bitmap.recycle();
+        List<Prediction> predictions = null;
+
+        try {
+            predictions = mClassifier.classifyFrame(bitmap);
+            bitmap.recycle();
+        } catch (OutOfMemoryError e) {
+            e.printStackTrace();
+            Timber.tag(TAG).w("classifyFrame - Out of memory - " + e);
+            Timber.tag(TAG).e(e);
+            return;
+        }
 
         // Return only one prediction, as accurate as possible (e.g. prefer species over family), that passes the minimal threshold
         Prediction selectedPrediction = null;

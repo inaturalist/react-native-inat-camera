@@ -102,6 +102,7 @@ public class ResolveTakenPictureAsyncTask extends AsyncTask<Void, Void, Writable
             Timber.tag(TAG).e("Out of memory exception");
             Timber.tag(TAG).e(e);
             mPromise.reject(ERROR_TAG, "Out of memory exception.", e);
+            return null;
         }
     }
 
