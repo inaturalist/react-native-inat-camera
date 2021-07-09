@@ -5,7 +5,7 @@ Pod::Spec.new do |s|
 
   s.name           = "react-native-inat-camera"
   s.version        = package["version"]
-  s.summary        = package["description"]
+  s.summary        = "React Native iNat Camera"
   s.homepage       = "https://github.com/inaturalist/react-native-inat-camera"
   s.license        = "MIT"
   s.author         = "iNaturalist"
