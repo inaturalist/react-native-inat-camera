@@ -14,7 +14,7 @@
 
   RCTBridge *bridge = [[RCTBridge alloc] initWithDelegate:self launchOptions:launchOptions];
   RCTRootView *rootView = [[RCTRootView alloc] initWithBridge:bridge
-                                                   moduleName:@"RnDiffApp"
+                                                   moduleName:@"example"
                                             initialProperties:nil];
 
   if (@available(iOS 13.0, *)) {

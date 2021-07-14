@@ -9,8 +9,9 @@
 
 import React, {Component} from 'react';
 import {Platform, StyleSheet, Text, View, Alert, Button} from 'react-native';
-import { createAppContainer, createStackNavigator } from 'react-navigation';
 import { INatCamera, getPredictionsForImage } from './INatCamera';
+import { createStackNavigator } from '@react-navigation/stack';
+import { NavigationContainer } from '@react-navigation/native';
 
 type Props = {};
 
@@ -231,15 +232,16 @@ class Home extends Component {
     }
 }
 
+const Stack = createStackNavigator( );
 
+const App = ( ) => (
+    <NavigationContainer>
+        <Stack.Navigator>
+            <Stack.Screen name="Home" component={Home} />
+            <Stack.Screen name="Camera" component={CameraApp} />
+        </Stack.Navigator>
+    </NavigationContainer>
+);
 
-
-const AppNavigator = createStackNavigator({
-    Camera: CameraApp,
-    Home: Home,
-}, {
-    initialRouteName: 'Home',
-});
-
-export default createAppContainer(AppNavigator);
+export default App;
 
