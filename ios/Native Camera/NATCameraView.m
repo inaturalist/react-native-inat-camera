@@ -378,7 +378,12 @@
 
 
 - (void)layoutSubviews {
+    [super layoutSubviews];
+    
     self.previewLayer.frame = self.bounds;
+    if (self.previewLayer.connection.supportsVideoOrientation) {
+        self.previewLayer.connection.videoOrientation = [self activeVideoOrientation];
+    }
 }
 
 - (void)startCaptureSession {
