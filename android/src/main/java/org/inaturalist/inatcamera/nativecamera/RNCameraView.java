@@ -263,34 +263,28 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
 
     public void takePicture(final ReadableMap options, final Promise promise, final File cacheDirectory) {
         Timber.tag(TAG).d("takePicture 1");
-        mBgHandler.post(new Runnable() {
-            @Override
-            public void run() {
-                Timber.tag(TAG).d("takePicture 2");
-                mPictureTakenPromises.add(promise);
-                mPictureTakenOptions.put(promise, options);
-                mPictureTakenDirectories.put(promise, cacheDirectory);
-                if (mPlaySoundOnCapture) {
-                    MediaActionSound sound = new MediaActionSound();
-                    sound.play(MediaActionSound.SHUTTER_CLICK);
-                }
-                try {
-                    Timber.tag(TAG).d("takePicture 3");
-                    RNCameraView.super.takePicture(options);
-                    if (options.hasKey("pauseAfterCapture") && options.getBoolean("pauseAfterCapture")) {
-                        synchronized (lock) {
-                            mRunClassifier = false;
-                        }
-                    }
-                } catch (Exception e) {
-                    mPictureTakenPromises.remove(promise);
-                    mPictureTakenOptions.remove(promise);
-                    mPictureTakenDirectories.remove(promise);
-
-                    promise.reject("E_TAKE_PICTURE_FAILED", e.getMessage());
+        mPictureTakenPromises.add(promise);
+        mPictureTakenOptions.put(promise, options);
+        mPictureTakenDirectories.put(promise, cacheDirectory);
+        if (mPlaySoundOnCapture) {
+            MediaActionSound sound = new MediaActionSound();
+            sound.play(MediaActionSound.SHUTTER_CLICK);
+        }
+        try {
+            Timber.tag(TAG).d("takePicture 3");
+            RNCameraView.super.takePicture(options);
+            if (options.hasKey("pauseAfterCapture") && options.getBoolean("pauseAfterCapture")) {
+                synchronized (lock) {
+                    mRunClassifier = false;
                 }
             }
-        });
+        } catch (Exception e) {
+            mPictureTakenPromises.remove(promise);
+            mPictureTakenOptions.remove(promise);
+            mPictureTakenDirectories.remove(promise);
+
+            promise.reject("E_TAKE_PICTURE_FAILED", e.getMessage());
+        }
     }
 
     @Override
@@ -348,29 +342,41 @@ public class RNCameraView extends CameraView implements LifecycleEventListener, 
         }
 
         if (mClassifier == null) {
-            try {
-                mClassifier = new ImageClassifier(mModelFilename, mTaxonomyFilename);
-                mClassifier.setFilterByTaxonId(mFilterByTaxonId);
-                mClassifier.setNegativeFilter(mNegativeFilter);
-            } catch (IOException e) {
-                e.printStackTrace();
-                onClassifierError("Failed to initialize an image mClassifier: " + e.getMessage());
-            } catch (OutOfMemoryError e) {
-                e.printStackTrace();
-                Timber.tag(TAG).w("Out of memory - Device not supported - classifier failed to load - " + e);
-                onDeviceNotSupported(deviceNotSupportedReasonToString(REASON_NOT_ENOUGH_MEMORY));
-                return;
-            } catch (Exception e) {
-                e.printStackTrace();
-                Timber.tag(TAG).w("Other type of exception - Device not supported - classifier failed to load - " + e);
-                onDeviceNotSupported(deviceNotSupportedReasonToString(REASON_DEVICE_NOT_SUPPORTED));
-                return;
-            }
+            new Thread(new Runnable() {
+                public void run() {
+                    try {
+                        long start = System.currentTimeMillis();
+                        mClassifier = new ImageClassifier(mModelFilename, mTaxonomyFilename);
+                        long end = System.currentTimeMillis() - start;
+                        Timber.tag(TAG).d("RNCameraView - onHostResume - classifier run time: " + end);
+                        mClassifier.setFilterByTaxonId(mFilterByTaxonId);
+                        mClassifier.setNegativeFilter(mNegativeFilter);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        onClassifierError("Failed to initialize an image mClassifier: " + e.getMessage());
+                    } catch (OutOfMemoryError e) {
+                        e.printStackTrace();
+                        Timber.tag(TAG).w("Out of memory - Device not supported - classifier failed to load - " + e);
+                        onDeviceNotSupported(deviceNotSupportedReasonToString(REASON_NOT_ENOUGH_MEMORY));
+                        return;
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        Timber.tag(TAG).w("Other type of exception - Device not supported - classifier failed to load - " + e);
+                        onDeviceNotSupported(deviceNotSupportedReasonToString(REASON_DEVICE_NOT_SUPPORTED));
+                        return;
+                    }
+
+                    Timber.tag(TAG).d("RNCameraView - onHostResume 8");
+
+                    synchronized (lock) {
+                        mRunClassifier = true;
+                    }
+
+                }
+            }).start();
+
         }
 
-        synchronized (lock) {
-            mRunClassifier = true;
-        }
 
         Timber.tag(TAG).d("RNCameraView - onHostResume 7");
         mBgHandler.post(periodicClassify);
