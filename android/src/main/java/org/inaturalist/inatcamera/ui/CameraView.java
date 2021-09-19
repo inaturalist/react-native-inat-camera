@@ -832,7 +832,7 @@ public class CameraView extends FrameLayout implements OnTouchListener {
 
             if (event.getPointerCount() == 2) { // Multi touch
                 currentFingerSpacing = getFingerSpacing(event);
-                float delta = 0.1f; // Control this value to control the zooming sensibility
+                float delta = 0.03f; // Control this value to control the zooming sensibility
 
                 if (Math.abs(currentFingerSpacing - mPreviousFingerSpacing) < 4) {
                     mPreviousFingerSpacing = currentFingerSpacing;
