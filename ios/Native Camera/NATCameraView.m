@@ -378,7 +378,19 @@
 
 
 - (void)layoutSubviews {
+    [super layoutSubviews];
+    
     self.previewLayer.frame = self.bounds;
+    if (self.previewLayer.connection.supportsVideoOrientation) {
+        NSError *error = nil;
+        if ([self.videoDevice lockForConfiguration:&error]) {
+            self.previewLayer.connection.videoOrientation = [self activeVideoOrientation];
+            [self.videoDevice unlockForConfiguration];
+        }
+        if (error) {
+            [self.delegate cameraView:self cameraError:error.localizedDescription];
+        }
+    }
 }
 
 - (void)startCaptureSession {
