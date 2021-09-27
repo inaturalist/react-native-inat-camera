@@ -1318,8 +1318,8 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         try {
             Timber.tag(TAG).d("lockFocus 2");
             mCaptureCallback.setState(PictureCaptureCallback.STATE_LOCKING);
-            Timber.tag(TAG).d("lockFocus 3");
-            mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, null);
+            Timber.tag(TAG).d("lockFocus 3 - " + mCaptureSession);
+            if (mCaptureSession != null) mCaptureSession.capture(mPreviewRequestBuilder.build(), mCaptureCallback, null);
             Timber.tag(TAG).d("lockFocus 4");
         } catch (CameraAccessException e) {
             Timber.tag(TAG).e("Failed to lock focus.", e);
@@ -1640,6 +1640,10 @@ class Camera2 extends CameraViewImpl implements MediaRecorder.OnInfoListener, Me
         Timber.tag(TAG).d("unlockFocus");
         if (mPreviewRequestBuilder == null) {
             Timber.tag(TAG).e("unlockFocus - mPreviewRequestBuilder is null");
+            return;
+        }
+        if (mCaptureSession == null) {
+            Timber.tag(TAG).e("unlockFocus - mCaptureSession is null");
             return;
         }
 
