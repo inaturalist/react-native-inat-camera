@@ -199,17 +199,23 @@ public class CameraView extends FrameLayout implements OnTouchListener {
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int widthMode2 = MeasureSpec.getMode(widthMeasureSpec);
+        int widthSize = MeasureSpec.getSize(widthMeasureSpec);
+        int heightMode2 = MeasureSpec.getMode(heightMeasureSpec);
+        int heightSize = MeasureSpec.getSize(heightMeasureSpec);
+        Timber.tag(TAG).d("onMeasure1 " + widthMode2 + ":" + widthSize + " / " + heightMode2 + ":" + heightSize);
+        Timber.tag(TAG).d("onMeasure1b " + MeasureSpec.EXACTLY + "/" + MeasureSpec.AT_MOST);
+
         if (isInEditMode()){
+            Timber.tag(TAG).d("onMeasure - exit " + widthMeasureSpec + "/" + heightMeasureSpec);
             super.onMeasure(widthMeasureSpec, heightMeasureSpec);
             return;
         }
+
         // Handle android:adjustViewBounds
         if (mAdjustViewBounds) {
-            if (!isCameraOpened()) {
-                mCallbacks.reserveRequestLayoutOnOpen();
-                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-                return;
-            }
+            Timber.tag(TAG).d("onMeasure 2 " + widthMeasureSpec + "/" + heightMeasureSpec);
+
             final int widthMode = MeasureSpec.getMode(widthMeasureSpec);
             final int heightMode = MeasureSpec.getMode(heightMeasureSpec);
             if (widthMode == MeasureSpec.EXACTLY && heightMode != MeasureSpec.EXACTLY) {
@@ -219,6 +225,7 @@ public class CameraView extends FrameLayout implements OnTouchListener {
                 if (heightMode == MeasureSpec.AT_MOST) {
                     height = Math.min(height, MeasureSpec.getSize(heightMeasureSpec));
                 }
+                Timber.tag(TAG).d("onMeasure 3" + widthMeasureSpec + "/" + heightMeasureSpec);
                 super.onMeasure(widthMeasureSpec,
                         MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
             } else if (widthMode != MeasureSpec.EXACTLY && heightMode == MeasureSpec.EXACTLY) {
@@ -228,12 +235,15 @@ public class CameraView extends FrameLayout implements OnTouchListener {
                 if (widthMode == MeasureSpec.AT_MOST) {
                     width = Math.min(width, MeasureSpec.getSize(widthMeasureSpec));
                 }
+                Timber.tag(TAG).d("onMeasure 4" + widthMeasureSpec + "/" + heightMeasureSpec);
                 super.onMeasure(MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
                         heightMeasureSpec);
             } else {
+                Timber.tag(TAG).d("onMeasure 5" + widthMeasureSpec + "/" + heightMeasureSpec);
                 super.onMeasure(widthMeasureSpec, heightMeasureSpec);
             }
         } else {
+            Timber.tag(TAG).d("onMeasure 6" + widthMeasureSpec + "/" + heightMeasureSpec);
             super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         }
         // Measure the TextureView
@@ -244,6 +254,7 @@ public class CameraView extends FrameLayout implements OnTouchListener {
             ratio = ratio.inverse();
         }
         assert ratio != null;
+        Timber.tag(TAG).d("onMeasure 7" + widthMeasureSpec + "/" + heightMeasureSpec);
         if (height < width * ratio.getY() / ratio.getX()) {
             mImpl.getView().measure(
                     MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
