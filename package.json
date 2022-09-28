@@ -6,7 +6,7 @@
     "start": "node node_modules/react-native/local-cli/cli.js start"
   },
   "peerDependencies": {
-    "react-native": "^0.64.1",
+    "react-native": ">=0.66.4",
     "prop-types": "^15.7.2"
   }
 }
