@@ -130,10 +130,6 @@
     }
     self.visionModel = visionModel;
     
-    
-    VNCoreMLRequest *objectRec = [[VNCoreMLRequest alloc] initWithModel:visionModel];
-    
-    
     VNRequestCompletionHandler handler = ^(VNRequest * _Nonnull request, NSError * _Nullable error) {
         VNCoreMLFeatureValueObservation *firstResult = request.results.firstObject;
         MLFeatureValue *firstFV = firstResult.featureValue;
