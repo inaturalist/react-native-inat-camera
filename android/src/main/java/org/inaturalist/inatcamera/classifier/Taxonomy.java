@@ -29,7 +29,7 @@ public class Taxonomy {
     private boolean mNegativeFilter = false;
 
     public void setFilterByTaxonId(Integer taxonId) {
-        Timber.tag(TAG).d("setFilterByTaoxnId: " + taxonId);
+        Timber.tag(TAG).d("setFilterByTaxonId: " + taxonId);
         mFilterByTaxonId = taxonId;
     }
 
